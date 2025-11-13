@@ -1,15 +1,17 @@
 name = "Dihedral"
 version = "0.1.0"
-defaultTargets = ["dihedral"]
+keywords = ["math"]
+defaultTargets = ["Dihedral"]
 
-[[lean_lib]]
-name = "Dihedral"
-
-[[lean_exe]]
-name = "dihedral"
-root = "Main"
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+maxSynthPendingDepth = 3
 
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
 
+[[lean_lib]]
+name = "Dihedral"
