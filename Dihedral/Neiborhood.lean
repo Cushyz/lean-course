@@ -1796,7 +1796,7 @@ def enumerateD_list (n : ℕ) : List D∞ :=
 def enumerateD (n : ℕ) : Finset D∞ :=
   (enumerateD_list n).toFinset
 
--- 可计算的 Ad (使用 cLength 替代 noncomputable 的 ℓ)
+-- 可计算的 Ad
 def Ad_finset (u : Vertex) (d : Degree) : Finset Vertex :=
   let limit := d.a + d.b + 1
   (enumerateD limit).filter (fun v => cLength (u * v) = cLength u + cLength v ∧ φ v ≤ d)
@@ -1819,7 +1819,6 @@ instance : Repr D∞ where
     | r k => if k = 0 then "1" else s!"r({k})"
     | sr k => s!"sr({k})"
 
--- 5. 运行示例
 #eval CurveNeighborhood_computable 1 ⟨2, 2⟩
 #eval CurveNeighborhood_computable s0 ⟨2, 3⟩
 #eval CurveNeighborhood_computable s1 ⟨3, 3⟩
