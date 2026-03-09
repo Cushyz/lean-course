@@ -1,4 +1,14 @@
-import Mathlib
+import Mathlib.GroupTheory.SpecificGroups.Dihedral
+
+import Mathlib.GroupTheory.Coxeter.Basic
+import Mathlib.GroupTheory.Coxeter.Matrix
+import Mathlib.GroupTheory.Coxeter.Length
+
+import Mathlib.Data.ZMod.Basic
+import Mathlib.Data.Matrix.Basic
+import Mathlib.Data.List.Basic
+
+import Mathlib.Tactic
 
 --无限二面体群由sr0、sr1生成
 open DihedralGroup CoxeterSystem List

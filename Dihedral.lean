@@ -1,1 +1,1 @@
-import Dihedral.Basic
+import Dihedral.Neib'

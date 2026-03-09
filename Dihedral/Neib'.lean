@@ -1,5 +1,3 @@
-import Mathlib
-import Dihedral.alternatingword
 import Dihedral.Degree'
 
 open CoxeterSystem DihedralGroup Nat
@@ -1621,7 +1619,7 @@ lemma exists_max_ge_in_Reachable (u : Vertex) (d : Degree) (v : Vertex)
       exact le_antisymm hm_le_v' this
   · exact h_v_le_m
 
-theorem curve_nbhd_eq_mul_max_ad (u : Vertex) (d : Degree) :
+theorem main_theorem (u : Vertex) (d : Degree) :
     CurveNeighborhood u d = { v | ∃ w, IsMaximalIn w (Ad u d) ∧ v = u * w } := by
   apply Set.ext
   intro v
@@ -1674,11 +1672,15 @@ theorem curve_nbhd_eq_mul_max_ad (u : Vertex) (d : Degree) :
       exact le_antisymm h_v'_le_m h_le_v_v'
     rw [h_v'_eq_v]
 
+theorem curve_nbhd_eq_mul_max_ad (u : Vertex) (d : Degree) :
+    CurveNeighborhood u d = { v | ∃ w, IsMaximalIn w (Ad u d) ∧ v = u * w } := by
+  simpa using main_theorem u d
+
 example : CurveNeighborhood 1 {a := 2, b := 2} = { s0s1_pow 2, s1s0_pow 2 } := by
   rw [curve_nbhd_one_diag {a := 2, b := 2} rfl]
 
 example : CurveNeighborhood s0 {a := 2, b := 3} = {s0 * s_alpha_d {a := 2, b := 3}} := by
-  rw [curve_nbhd_eq_mul_max_ad s0 {a := 2, b := 3}]
+  rw [main_theorem s0 {a := 2, b := 3}]
   have h_ends : ends_in_s0 s0 := by
     rw [s0, ends_in_s0_sr]
   have h_u_ne_1 : s0 ≠ 1 := by

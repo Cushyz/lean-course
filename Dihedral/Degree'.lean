@@ -1,4 +1,3 @@
-import Mathlib
 import Dihedral.Basic
 
 open Nat CoxeterSystem DihedralGroup
