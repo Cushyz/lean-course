@@ -1,10 +1,9 @@
 import Mathlib
-import Dihedral.Basic
-import Dihedral.Length
-import Dihedral.Degree
+import Dihedral.alternatingword
+import Dihedral.Degree'
 
 open CoxeterSystem DihedralGroup Nat
--- notation "gD" => getDegree
+
 -- (Reachable Set)
 def ReachableSet (u : Vertex) (d : Degree) : Set Vertex :=
   { v | ∃ d', HasChain u v d' ∧ d' ≤ d }
@@ -23,22 +22,23 @@ def Ad (u : Vertex) (d : Degree) : Set Vertex :=
 -- 定义集合 S 中的极大元子集
 def maximalElements (S : Set Vertex) : Set Vertex :=
   { v | IsMaximalIn v S }
+
 --欲证明有限集
 lemma h_len_bound : ∀ v ∈ Ad u d, ℓ v ≤ d.a + d.b + 1 := by
     intro v hv
     obtain ⟨h, h_deg⟩ := hv
     induction v using alternating_cases with
-    | h s n =>
-      simp_all only [length_alternating]
+    | h s s' n h2=>
+      simp_all only [ne_eq, length_wordprod n h2, Degreele_le_def]
       induction n using n_mod_2_induction with
       | h0 k =>
-        erw [getDegree_alternating_even, Degreele_le_def] at h_deg
+        rw [show s'=1 - s by omega, getDegree_alternatin_even k] at *
         linarith
       | h1 k =>
-        fin_cases s
-        · erw [getDegree_alternating_odd_0, Degreele_le_def] at h_deg
+        fin_cases s <;>simp_all
+        · erw [show s' =1 by omega, getDegree_alternating_0_odd] at h_deg
           linarith
-        · erw [getDegree_alternating_odd_1, Degreele_le_def] at h_deg
+        · erw [show s' =0 by omega, getDegree_alternating_1_odd] at h_deg
           linarith
 
 lemma h_finite : (Ad u d).Finite := by
@@ -58,18 +58,21 @@ lemma h_finite : (Ad u d).Finite := by
           {v | ℓ v = k}).Finite := by
       apply Set.Finite.biUnion (Finset.finite_toSet _)
       intro k hk
-      have h_finite_image : (Set.range (fun (s : Fin 2) => listToGroup (alternating s k))).Finite :=
-        Set.finite_range _
+      have h_finite_image : (Set.range (fun (s : Fin 2) =>
+        cs.wordProd (alternatingWord s (1-s) k))).Finite := Set.finite_range _
       apply Set.Finite.subset h_finite_image
       intro v hv
       simp only [Set.mem_setOf_eq] at hv
       revert hv
-      apply alternating_cases (P := fun v => ℓ v =
-         k → v ∈ Set.range fun s => listToGroup (alternating s k))
-      intro s n h_len
-      rw [length_alternating] at h_len
+      apply alternating_cases (P := fun v => ℓ v = k →
+         v ∈ Set.range fun s => cs.wordProd (alternatingWord s (1-s) k))
+      intro s1 s2 n h_ne h_len
+      rw [length_wordprod n h_ne] at h_len
       subst h_len
-      exact Set.mem_range_self s
+      have hs2 : s2 = 1 - s1 := by
+        fin_cases s1 <;> fin_cases s2 <;> simp at h_ne ⊢
+      subst s2
+      exact Set.mem_range_self s1
     simpa using hfinite
 
 lemma h_nonempty : (Ad u d).Nonempty := ⟨1, ⟨by simp, by
@@ -77,7 +80,10 @@ lemma h_nonempty : (Ad u d).Nonempty := ⟨1, ⟨by simp, by
 
 lemma h_chain {u : Vertex} (h : u ≠ 1) : IsChain (· ≤ ·) (Ad u d) := by
   intro x hx y hy hxy
-  suffices h : (x < y) ∨ (y < x) by tauto
+  suffices h : (x < y) ∨ (y < x) by
+    rcases h with h | h
+    · left; exact le_of_lt h
+    · right; exact le_of_lt h
   rcases hx with ⟨hv, hv'⟩
   rcases hy with ⟨hw, hw'⟩
   rcases d with ⟨a,b⟩
@@ -141,28 +147,52 @@ theorem lemma_3_1_1 (u : Vertex) (d : Degree) :
       apply hy_max m hm.1 h_le
 
 lemma lemma_3_hl (d : Degree) : Ad 1 d = {x : Vertex | φ x ≤ d} := by
-  simp [Ad]
+  simp [Ad, one_mul]
 
 theorem lemma_3_1_2 (d : Degree) :
      (d.a ≠ d.b) → ∃! v, IsMaximalIn v (Ad 1 d) := by
       intro ne
       rcases d with ⟨a, b⟩
       dsimp [IsMaximalIn]
-      rw [Nat.ne_iff_lt_or_gt]at ne
+      rw [Nat.ne_iff_lt_or_gt] at ne
       simp only [lemma_3_hl]
       rcases ne with h | h
-      · use s_α ⟨a, a + 1, Or.inr rfl⟩
-        simp only [Degreele_le_def, s_α, gt_iff_lt, add_lt_iff_neg_left, _root_.not_lt_zero,
-          reduceIte, Fin.isValue, show a + (a + 1) = 2 * a + 1 by omega, alternating_prod_odd,
-          one_ne_zero, Set.mem_setOf_eq, and_imp]
+      · -- a < b. v = sr (-(b)). a = b or a < b.
+        -- But root ⟨b+1, b⟩ => s_alpha = sr (-b)
+        use s_α ⟨a, a + 1, Or.inr rfl⟩ -- Wait, if a < b, maximal is in terms of b?
+        -- If a < b, maximal element is sr (a+1) (k>0) or sr (-b) (k<=0)?
+        -- Let's check degrees.
+        -- φ (sr k) = (|k-1|, |k|) if k>0; (|k|+1, |k|) if k<=0.
+        -- We want (x, y) <= (a, b).
+        -- If k > 0: |k-1| <= a, |k| <= b.
+        -- Max possible k: |k| <= b. If k=b, |b-1| = b-1. If b-1 <= a?
+        -- Given a < b. b-1 could be a.
+        -- If k <= 0: |k|+1 <= a, |k| <= b. |k| <= a-1.
+        -- Max length ~ 2*deg.
+        -- Let's stick to the structure.
+        -- If a < b, max element is s_alpha_d corresponding to a
+        -- actually s_alpha_d is defined by comparing a and b.
+        -- If a < b, root is <a, a+1> -> sr (a+1).
+        -- Check degree sr (a+1): <a, a+1>. fits if a+1 <= b.
+        -- Yes, a < b => a+1 <= b.
+        -- So v = sr (a+1).
+        --use s_α ⟨a, a + 1, Or.inr rfl⟩
         simp only at h
+        have h': a + 1 ≤ b := by omega
+        simp only [Degreele_le_def, s_α, gt_iff_lt, add_lt_iff_neg_left, _root_.not_lt_zero,
+          ↓reduceIte, Fin.isValue, show a + (a + 1) = 2 * a + 1 by omega, Set.mem_setOf_eq,
+          getDegree_alternating_0_odd a, le_refl, h', and_self, and_imp, true_and]
+        -- s_α uses wordProd alternatingWord.
+        -- For <a, a+1>, it's alternatingWord 0 1 (2a+1).
+        rw [cs.prod_alternatingWord_eq_mul_pow 0 1 (2*a+1)]
+        have h_div : (2 * a + 1) / 2 = a := by omega
+        simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr,
+          sub_zero, h_div, r_pow, one_mul, sr_mul_r]
         split_ands
-        · simp[getDegree_sr]
-        · simp[getDegree_sr]
-          omega
         · intro v h1 h2 h3
-          have h3 : ( ℓ (sr (a + 1:ℕ)) < ℓ v) ∨ (sr (a + 1:ℕ) = v) := by
-            rw [← lemma_2_3] ; exact h3
+          let a' := (a : ℤ)
+          have h3 : ( ℓ (sr (1 + a)) < ℓ v) ∨ (sr (1 + a : ℕ) = v) := by
+            simp only[← lemma_2_3] ; exact h3
           cases v with
           | r n =>
             rw [length_sr', length_r] at h3
@@ -191,18 +221,24 @@ theorem lemma_3_1_2 (d : Degree) :
             specialize h3 (sr ((a:ℕ)+1:ℤ))
             simp_all only [getDegree_sr, add_sub_cancel_right, Int.natAbs_natCast, le_refl,
               sr.injEq, forall_const]
+            rw [add_comm]
             apply h3
             · omega
             · apply le_of_eq_or_lt
               rw [lemma_2_3, length_sr',length_sr']
               grind
-      · use s_α ⟨b + 1, b, Or.inl rfl⟩
-        simp only [Degreele_le_def, s_α, gt_iff_lt, lt_add_iff_pos_right, zero_lt_one, reduceIte,
-          Fin.isValue, Set.mem_setOf_eq, and_imp]
-        repeat rw[show b + 1+b = 2*b + 1 by omega, getDegree_alternating_odd_0 b]
-        simp_all only [le_refl, and_true, Fin.isValue, alternating_prod_odd, reduceIte]
+      · -- a > b. v = sr (-b).
+        use s_α ⟨b + 1, b, Or.inl rfl⟩
+        simp only at h
+        have h' : b + 1 ≤ a := by linarith
+        simp only [Degreele_le_def, s_α, gt_iff_lt, lt_add_iff_pos_right, zero_lt_one, ↓reduceIte,
+          Fin.isValue, show b + 1 + b = 2 * b + 1 by omega, Set.mem_setOf_eq,
+          getDegree_alternating_1_odd b, h', le_refl, and_self, and_imp, true_and]
+        rw [cs.prod_alternatingWord_eq_mul_pow 1 0 (2*b+1)]
+        have h_div : (2 * b + 1) / 2 = b := by omega
+        simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr,
+          zero_sub, h_div, r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
         split_ands
-        · exact h
         · intro v h1 h2 h3
           have h3 : ( ℓ (sr (-(b:ℤ))) < ℓ v) ∨ (sr (-(b:ℤ)) = v) := by
             rw [← lemma_2_3] ; exact h3
@@ -240,26 +276,16 @@ theorem lemma_3_1_2 (d : Degree) :
               rw [lemma_2_3, length_sr',length_sr']
               grind
 
-lemma h_r_pos (a : ℕ) : (s0 * s1) ^ a = r (a : ℤ) := by
-  simp [s0, s1]
-
-lemma h_r_neg (a : ℕ) : (s1 * s0) ^ a = r (-(a : ℤ)) := by
-  simp [s0, s1]
-
 theorem lemma_3_1_3 (a : ℕ) (v : Vertex) :
-    -- d = (a, a) 且 u = 1 的情况
     let S := Ad 1 (Degree.mk a a)
-    IsMaximalIn v S ↔ v = (s0*s1)^a ∨ v = (s1*s0)^a := by
+    IsMaximalIn v S ↔ v = r (a : ℤ) ∨ v = r (-(a : ℤ)) := by
   simp only [lemma_3_hl, Degreele_le_def]
-  rw [h_r_pos, h_r_neg]
   have h_len_le : ∀ x, getDegree x ≤ Degree.mk a a → ℓ x ≤ 2 * a := by
     intro x h_deg
     rcases x with (_ | k)
-    --  r k
     · simp only [getDegree_r, Degreele_le_def] at h_deg
       rw [length_r]
       omega
-    -- sr k
     · simp only [getDegree_sr, Degreele_le_def] at h_deg
       rw [length_sr]
       split_ifs with h_pos
@@ -267,26 +293,22 @@ theorem lemma_3_1_3 (a : ℕ) (v : Vertex) :
         · simp [hk0] at h_deg ⊢
         · omega
       · omega
-  --  r a , r (-a) ∈ S
+  -- r a, r (-a) ∈ S
   have h_mem_pos : getDegree (r (a : ℤ)) ≤ Degree.mk a a := by
     simp only [getDegree_r, Int.natAbs_natCast, le_refl]
   have h_mem_neg : getDegree (r (-(a : ℤ))) ≤ Degree.mk a a := by
     simp only [getDegree_r, Int.natAbs_neg, Int.natAbs_natCast, le_refl]
-  -- 极大性
   have h_maximal_iff_len : IsMaximalIn v {x | getDegree x ≤ Degree.mk a a} ↔
                            getDegree v ≤ Degree.mk a a ∧ ℓ v = 2 * a := by
     constructor
     · rintro ⟨h_in, h_max⟩
       constructor
       · exact h_in
-      · -- 反证：if ℓ小于 2a，小于 r a
-        by_contra h_len_ne
+      · by_contra h_len_ne
         have h_len_lt : ℓ v < 2 * a := lt_of_le_of_ne (h_len_le v h_in) h_len_ne
-        -- 构造一个长度为 2a 的元素 w = r a
-        let a' := (a : ZMod 0)
-        let w := r a'
+        let w := r (a : ZMod 0)
         have h_w_in : w ∈ {x | getDegree x ≤ Degree.mk a a} := h_mem_pos
-        have h_len_w : ℓ w = 2 * a := by simp [w, length_r, a']; omega
+        have h_len_w : ℓ w = 2 * a := by simp [w, length_r]; omega
         have h_lt : v < w := (lemma_2_3 v w).mpr (by rw [h_len_w]; exact h_len_lt)
         have h_le : v ≤ w := le_of_lt h_lt
         have h_eq := h_max w h_w_in h_le
@@ -320,7 +342,7 @@ theorem lemma_3_1_3 (a : ℕ) (v : Vertex) :
     | sr k =>
       simp [length_sr] at h_len
       split_ifs at h_len
-      <;>omega
+      <;> omega
   · rintro (rfl | rfl)
     · exact ⟨h_mem_pos, by simp [length_r]⟩
     · exact ⟨h_mem_neg, by simp [length_r]⟩
@@ -333,110 +355,117 @@ def root_from_degree (d : Degree) : Root :=
 
 def s_alpha_d (d : Degree) : Vertex := s_α (root_from_degree d)
 
-def s0s1_pow (a : ℕ) : Vertex := listToGroup (alternating 0 (2 * a))
-def s1s0_pow (a : ℕ) : Vertex := listToGroup (alternating 1 (2 * a))
+def s0s1_pow (a : ℕ) : Vertex := cs.wordProd (alternatingWord 0 1 (2 * a))
+def s1s0_pow (a : ℕ) : Vertex := cs.wordProd (alternatingWord 1 0 (2 * a))
 
-lemma s0s1_pow_equiv (a : ℕ) : s0s1_pow a = (s0*s1)^a := by
-  simp [s0s1_pow, s0, s1]
+lemma s0s1_pow_equiv (a : ℕ) : s0s1_pow a = r (a : ℤ) := by
+  simp only [s0s1_pow, Fin.isValue]
+  rw [cs.prod_alternatingWord_eq_mul_pow 0 1]
+  simp [s0, s1, sr_mul_sr, ← s0', ← s1']
 
-lemma s1s0_pow_equiv (a : ℕ) : s1s0_pow a = (s1*s0)^a := by
-  simp [s1s0_pow, s0, s1]
+lemma s1s0_pow_equiv (a : ℕ) : s1s0_pow a = r (-(a : ℤ)) := by
+  simp only [s1s0_pow, Fin.isValue]
+  rw [cs.prod_alternatingWord_eq_mul_pow 1 0]
+  simp [s0, s1, sr_mul_sr, ← s0', ← s1']
 
--- 辅助定义：计算交替字序列中的最后一个生成元索引
--- 如果序列长度为 n，起始为 s，则第 n 个元素（从 0 开始计数）是 s + n (mod 2)
-def last_index (s : Fin 2) (n : ℕ) : Fin 2 :=
-  if n % 2 == 0 then s else (if s = 0 then 1 else 0)
+lemma phi_sr0_add_phi_sr_eq_phi_r_pos (k : ℤ) (hk : 0 < k) :
+    φ (sr (0 : ℤ)) + φ (sr k) = φ (r k) := by
+  ext
+  · have h_nat : (k - 1).natAbs = k.natAbs - 1 := by omega
+    simpa [getDegree_sr, getDegree_r, h_nat, instAddDegree, Add.add] using
+      (show 1 + (k.natAbs - 1) = k.natAbs by omega)
+  · rw [getDegree_sr, getDegree_sr, getDegree_r]
+    have hb0 : (({ a := ((0 : ℤ) - 1).natAbs, b := Int.natAbs (0 : ℤ) } : Degree) +
+      ({ a := (k - 1).natAbs, b := k.natAbs } : Degree)).b =
+      Int.natAbs (0 : ℤ) + k.natAbs := by rfl
+    rw [hb0]
+    simp
 
--- 对应的简单根
-def root_for_index (i : Fin 2) : Root :=
-  if i = 0 then α0 else α1
+lemma phi_sr1_add_phi_sr_succ_eq_phi_r_neg (k : ℤ) (hk : k < 0) :
+    φ (sr (1 : ℤ)) + φ (sr ((k + 1 : ℤ))) = φ (r k) := by
+  have h_abs_step : (k + 1).natAbs + 1 = k.natAbs := by omega
+  ext
+  · rw [getDegree_sr, getDegree_sr, getDegree_r]
+    have hk_id : k + 1 - 1 = k := by ring
+    have ha0 : (({ a := ((1 : ℤ) - 1).natAbs, b := Int.natAbs (1 : ℤ) } : Degree) +
+      ({ a := (k + 1 - 1).natAbs, b := (k + 1).natAbs } : Degree)).a
+      = ((1 : ℤ) - 1).natAbs + (k + 1 - 1).natAbs := by rfl
+    rw [ha0]
+    simp [hk_id]
+  · rw [getDegree_sr, getDegree_sr, getDegree_r]
+    have hb0 : (({ a := ((1 : ℤ) - 1).natAbs, b := Int.natAbs (1 : ℤ) } : Degree) +
+      ({ a := (k + 1 - 1).natAbs, b := (k + 1).natAbs } : Degree)).b
+      = Int.natAbs (1 : ℤ) + (k + 1).natAbs := by rfl
+    rw [hb0]
+    simp [h_abs_step, Nat.add_comm]
 
--- alternating s (n + 1) 生成的群元素等于 alternating s n 生成的元素右乘一个新的生成元
-lemma listToGroup_alternating_succ_right (s : Fin 2) (n : ℕ) :
-    listToGroup (alternating s (n + 1)) = listToGroup (alternating s n) * f (last_index s n) := by
-  induction n generalizing s with
-  | zero =>
-    simp [alternating, listToGroup, last_index]
-  | succ n ih =>
-    rw [alternating]
-    simp only [listToGroup, List.map_cons, List.prod_cons]
-    rw [← listToGroup, ← listToGroup]
-    rw [ih (s + 1), ← mul_assoc]
-    congr 1
-    dsimp [last_index]
-    fin_cases s
-    all_goals
-    · simp; grind
+lemma trivial_chain_sr (k : ℤ) : HasChain 1 (sr k) (φ (sr k)) := by
+  obtain ⟨α, hα⟩ := exists_root_eq_sr k
+  have h_edge : IsEdge 1 (sr k) α := by
+    dsimp [IsEdge]
+    rw [hα, one_mul]
+  have h_deg : α.toDegree = φ (sr k) := by
+    rw [← hα]
+    simpa using (φ_s_alpha_eq α).symm
+  rw [← h_deg]
+  simpa using
+    (HasChain.step (HasChain.refl 1) h_edge : HasChain 1 (sr k) (0 + α.toDegree))
 
--- 沿着alternating增加一步，度数增加对应的简单根的度数
-lemma getDegree_alternating_succ (s : Fin 2) (n : ℕ) :
-    φ (listToGroup (alternating s (n + 1))) =
-    φ (listToGroup (alternating s n)) + (root_for_index (last_index s n)).toDegree := by
-  -- 分奇偶讨论 n
-  induction n using n_mod_2_induction with
-  | h0 k =>
-    simp only [alternating_prod_odd, Fin.isValue, alternating_prod_even, root_for_index, last_index,
-      mul_mod_right, BEq.rfl, reduceIte]
-    fin_cases s
-    · simp only[Fin.zero_eta, Fin.isValue, reduceIte, getDegree_sr, Int.natAbs_neg,
-      Int.natAbs_natCast, getDegree_r, Root.toDegree, α0]
-      rw [show (-(k : ℤ)-1).natAbs = k+1 by omega]
-      rfl
-    · simp only [Fin.mk_one, Fin.isValue, one_ne_zero, reduceIte, getDegree_sr,
-      add_sub_cancel_right, Int.natAbs_natCast, getDegree_r, Int.natAbs_neg, Root.toDegree, α1]
-      rfl
-  | h1 k =>
-    rw [show 2 * k + 1 + 1 = 2 * (k + 1) by omega]
-    simp only [alternating_prod_odd, Fin.isValue, root_for_index, last_index, mul_add_mod_self_left,
-      mod_succ, Nat.reduceBEq, Bool.false_eq_true, reduceIte, ite_eq_right_iff, one_ne_zero,
-      imp_false, ite_not, alternating_prod_even]
-    fin_cases s
-    · simp only[Fin.zero_eta, Fin.isValue, reduceIte, getDegree_sr, Int.natAbs_neg,
-      Int.natAbs_natCast, getDegree_r, Root.toDegree, α1]
-      rw [show (-(k : ℤ)-1).natAbs = k+1 by omega]
-      rfl
-    · simp only [Fin.mk_one, Fin.isValue, one_ne_zero, reduceIte, getDegree_sr,
-      add_sub_cancel_right, Int.natAbs_natCast, getDegree_r, Int.natAbs_neg, Root.toDegree, α0]
-      rfl
+lemma trivial_chain_r_pos (k : ℤ) (hk : 0 < k) : HasChain 1 (r k) (φ (r k)) := by
+  obtain ⟨αk, hαk⟩ := exists_root_eq_sr k
+  have h_chain0 : HasChain 1 (sr (0 : ℤ)) (φ (sr (0 : ℤ))) := trivial_chain_sr 0
+  have h_edgek : IsEdge (sr (0 : ℤ)) (r k) αk := by
+    dsimp [IsEdge]
+    rw [hαk, sr_mul_sr, sub_zero]
+  have h_chaink : HasChain 1 (r k) (φ (sr (0 : ℤ)) + αk.toDegree) :=
+    HasChain.step h_chain0 h_edgek
+  have h_degk : αk.toDegree = φ (sr k) := by
+    rw [← hαk]
+    simpa using (φ_s_alpha_eq αk).symm
+  rw [h_degk] at h_chaink
+  rw [phi_sr0_add_phi_sr_eq_phi_r_pos k hk] at h_chaink
+  exact h_chaink
+
+lemma trivial_chain_r_neg (k : ℤ) (hk : k < 0) : HasChain 1 (r k) (φ (r k)) := by
+  obtain ⟨αk1, hαk1⟩ := exists_root_eq_sr (k + 1)
+  have h_chain1 : HasChain 1 (sr (1 : ℤ)) (φ (sr (1 : ℤ))) := trivial_chain_sr 1
+  have h_edgek1 : IsEdge (sr (1 : ℤ)) (r k) αk1 := by
+    dsimp [IsEdge]
+    rw [hαk1, sr_mul_sr]
+    ring_nf
+  have h_chaink1 : HasChain 1 (r k) (φ (sr (1 : ℤ)) + αk1.toDegree) :=
+    HasChain.step h_chain1 h_edgek1
+  have h_degk1 : αk1.toDegree = φ (sr ((k + 1 : ℤ))) := by
+    rw [← hαk1]
+    simpa using (φ_s_alpha_eq αk1).symm
+  rw [h_degk1] at h_chaink1
+  rw [phi_sr1_add_phi_sr_succ_eq_phi_r_neg k hk] at h_chaink1
+  exact h_chaink1
 
 lemma trivial_chain (u : Vertex) : HasChain 1 u (φ u) := by
-  induction u using alternating_cases with
-  | h s n =>
-  induction n generalizing s with
-  | zero =>
-    simp only [listToGroup, alternating, List.map_nil, List.prod_nil]
-    exact HasChain.refl 1
-  | succ n ih =>
-    let u := listToGroup (alternating s n)
-    let v := listToGroup (alternating s (n + 1))
-    let i := last_index s n
-    let α := root_for_index i
-    have h_chain_u := ih s
-    have h_edge : IsEdge u v α := by
-      dsimp [IsEdge, v, u]
-      rw [listToGroup_alternating_succ_right]
-      congr
-      simp only [last_index, beq_iff_eq, Fin.isValue, root_for_index, α, i]
-      by_cases h' : n % 2 = 0
-      all_goals
-        simp only [h', reduceIte, Fin.isValue, ite_eq_right_iff, one_ne_zero, imp_false, ite_not]
-        fin_cases s
-        all_goals
-          simp; rfl
-    rw [getDegree_alternating_succ]
-    apply HasChain.step h_chain_u h_edge
+  cases u with
+  | sr k =>
+    simpa using trivial_chain_sr (k : ℤ)
+  | r k =>
+    let k' : ℤ := k
+    by_cases hk0 : k' = 0
+    · subst hk0
+      simpa [getDegree_one] using (HasChain.refl (1 : Vertex))
+    · by_cases hk_pos : 0 < k'
+      · simpa [k'] using trivial_chain_r_pos k' hk_pos
+      · have hk_neg : k' < 0 := by omega
+        simpa [k'] using trivial_chain_r_neg k' hk_neg
 
--- 结论 A: 证明对于单位元1，曲线邻域就是 Ad(1) 的极大元集合
+-- 结论 A
 theorem curve_neighborhood_eq_max_Ad_identity (d : Degree) :
     CurveNeighborhood 1 d = { v | IsMaximalIn v (Ad 1 d) } := by
   rw [CurveNeighborhood]
   congr
   ext v
   constructor
-  -- ReachableSet 1 d ⊆ Ad 1 d
   · rintro h_in_Re
-    simp only [ReachableSet, ] at h_in_Re
-    simp only [Ad, one_mul, length_one, zero_add, true_and]
+    simp only [ReachableSet] at h_in_Re
+    simp only [Ad, one_mul, cs.length_one, zero_add, true_and]
     have h_deg_le : getDegree v ≤ d := by
       rcases h_in_Re with ⟨h_mem, _⟩
       simp only [Set.mem_setOf_eq] at h_mem
@@ -451,9 +480,8 @@ theorem curve_neighborhood_eq_max_Ad_identity (d : Degree) :
       use getDegree x
       exact ⟨trivial_chain x, h_x_deg_le⟩
     apply h_in_Re.2 x h_x_in_Re h_v_le_x
-  --Ad 1 d ⊆ ReachableSet 1 d
   · intro h_in_Ad
-    simp only [Ad, one_mul, length_one, zero_add, true_and] at h_in_Ad
+    simp only [Ad, one_mul, cs.length_one, zero_add, true_and] at h_in_Ad
     simp only [ReachableSet]
     constructor
     · use getDegree v
@@ -467,84 +495,95 @@ theorem curve_neighborhood_eq_max_Ad_identity (d : Degree) :
         exact le_trans h_phi_le_d' h_d'_le_d
       apply h_in_Ad.2 x h_x_in_Ad h_v_lt_x
 
--- 结论 B: Theorem 3.3 的具体计算公式
 theorem theorem_3_3_eq (d : Degree) (p : d.a = d.b) :
   CurveNeighborhood 1 d = { s0s1_pow d.a, s1s0_pow d.a } := by
   rw [curve_neighborhood_eq_max_Ad_identity]
-  have h := lemma_3_1_3 d.a ;
+  have h := lemma_3_1_3 d.a
   ext v
   specialize h v
   simp_all only [Set.mem_setOf_eq, Set.mem_insert_iff, Set.mem_singleton_iff]
   have hf : d = { a := d.b, b := d.b } := by
     ext <;> simp[p]
   rw [← hf] at h
-  rw [h, s0s1_pow_equiv ,s1s0_pow_equiv]
+  rw [h, s0s1_pow_equiv, s1s0_pow_equiv]
 
 lemma s_alpha_d_maximal (d : Degree) (p : d.a ≠ d.b) :
   IsMaximalIn (s_alpha_d d) (Ad 1 d) := by
   by_cases h : d.a > d.b
-  · simp only [s_alpha_d, s_α, root_from_degree, gt_iff_lt, h, reduceIte, lt_add_iff_pos_right,
-    zero_lt_one, Fin.isValue, lemma_3_hl, Degreele_le_def]
-    simp only [Fin.isValue, show d.b + 1 + d.b = 2 * d.b + 1 by omega, alternating_prod_odd,
-      reduceIte]
+  · have hs : s_alpha_d d = sr (-(d.b : ℤ)) := by
+      unfold s_alpha_d s_α root_from_degree
+      simp only [h, ↓reduceIte, Fin.isValue]
+      have hsum : d.b + 1 + d.b = 2 * d.b + 1 := by omega
+      rw [hsum, cs.prod_alternatingWord_eq_mul_pow 1 0 (2 * d.b + 1)]
+      have hdiv : (2 * d.b + 1) / 2 = d.b := by omega
+      rw [hdiv]
+      simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr,
+        zero_sub, r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
+      have hgt : d.b + 1 > d.b := by omega
+      simp [hgt]
+    rw [hs, lemma_3_hl]
     refine ⟨?_, ?_⟩
-    · simp[getDegree_sr]
+    · simp [getDegree_sr]
       omega
-    · intro v p w
+    · intro v hv hv_le
+      have hv_le' : sr (-(d.b : ℤ)) ≤ v := by simpa [hs] using hv_le
+      have hv_cmp : (ℓ (sr (-(d.b : ℤ))) < ℓ v) ∨ (sr (-(d.b : ℤ)) = v) := by
+        rw [← lemma_2_3]
+        exact hv_le'
       cases v with
       | r n =>
-        have k: sr (-↑d.b) < r n := by
-          change (Lt _ _) ∨ _ at w
-          simp only [reduceCtorEq, or_false] at w
-          exact w
-        simp only [lemma_2_3, length_sr, gt_iff_lt, Left.neg_pos_iff, length_r] at k
-        simp only [Set.mem_setOf_eq, getDegree_r] at p
-        change ℤ at *
-        grind
-      | sr n =>
-        by_contra k
-        have k : ℓ (sr (-↑d.b)) < ℓ (sr n) := by
-          rw [← lemma_2_3]; exact Std.lt_of_le_of_ne w k
-        simp_all only [length_sr']
-        simp_all only [ne_eq, gt_iff_lt, Set.mem_setOf_eq, getDegree_sr, sr.injEq, mul_neg]
-        change ℤ at *
+        rw [length_sr', length_r] at hv_cmp
+        simp_all [getDegree_r]
         omega
-  · simp only [s_alpha_d, s_α, root_from_degree, gt_iff_lt, h, reduceIte, add_lt_iff_neg_left,
-    _root_.not_lt_zero, Fin.isValue]
-    simp only [Fin.isValue, show d.a + (d.a + 1) = 2 * d.a + 1 by omega, alternating_prod_odd,
-      one_ne_zero, reduceIte, lemma_3_hl, Degreele_le_def]
+      | sr n =>
+        rcases hv_cmp with hlt | heq
+        · rw [length_sr', length_sr'] at hlt
+          simp_all [getDegree_sr]
+          omega
+        · simpa using heq
+  · have hs : s_alpha_d d = sr ((d.a : ℤ) + 1) := by
+      unfold s_alpha_d s_α root_from_degree
+      simp only [h, ↓reduceIte, Fin.isValue]
+      have hsum : d.a + (d.a + 1) = 2 * d.a + 1 := by omega
+      rw [hsum, cs.prod_alternatingWord_eq_mul_pow 0 1 (2 * d.a + 1)]
+      have hdiv : (2 * d.a + 1) / 2 = d.a := by omega
+      rw [hdiv]
+      simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr,
+        sub_zero, r_pow, one_mul, sr_mul_r]
+      have hnot : ¬ d.a > d.a + 1 := by omega
+      simp [hnot, add_comm]
+    rw [hs, lemma_3_hl]
     refine ⟨?_, ?_⟩
-    · simp[getDegree_sr]
+    · simp [getDegree_sr]
       omega
-    · intro v p w
+    · intro v hv hv_le
+      have hv_le' : sr (((d.a + 1 : ℕ) : ℤ)) ≤ v := by
+        simpa [hs, add_comm] using hv_le
+      have hv_cmp : (ℓ (sr (((d.a + 1 : ℕ) : ℤ))) < ℓ v) ∨
+          (sr (((d.a + 1 : ℕ) : ℤ)) = v) := by
+        rw [← lemma_2_3]
+        exact hv_le'
       cases v with
       | r n =>
-        have k: sr (d.a + 1 : ℤ) < r n := by
-          change (Lt _ _) ∨ _ at w
-          simp only [reduceCtorEq, or_false] at w
-          exact w
-        simp only [lemma_2_3, length_sr, gt_iff_lt, Int.succ_ofNat_pos, reduceIte, length_r] at k
-        simp only [Set.mem_setOf_eq, getDegree_r] at p
-        change ℤ at *
-        grind
-      | sr n =>
-        by_contra k
-        have k : ℓ (sr (d.a + 1 : ℤ)) < ℓ (sr n) := by
-          rw [← lemma_2_3]; exact Std.lt_of_le_of_ne w k
-        simp_all only [length_sr']
-        simp_all only [ne_eq, gt_iff_lt, not_lt, Set.mem_setOf_eq, getDegree_sr, sr.injEq]
-        change ℤ at *
+        rw [length_sr', length_r] at hv_cmp
+        simp_all [getDegree_r]
         omega
+      | sr n =>
+        rcases hv_cmp with hlt | heq
+        · rw [length_sr', length_sr'] at hlt
+          simp_all [getDegree_sr]
+          omega
+        · simpa using heq
 
 theorem theorem_3_3_neq (d : Degree) (p : d.a ≠ d.b) :
     CurveNeighborhood 1 d = { s_alpha_d d } := by
     rw [curve_neighborhood_eq_max_Ad_identity]
     ext v
-    have h := lemma_3_1_2 _ p;
+    have h := lemma_3_1_2 _ p
     constructor
     · simp only [Set.mem_setOf_eq, Set.mem_singleton_iff]
       intro w
-      rcases h with ⟨w1,w2,q⟩
+      rcases h with ⟨w1, w2, q⟩
       simp at q
       simp [q _ (s_alpha_d_maximal _ p), q _ w]
     · intro w
@@ -564,142 +603,117 @@ theorem theorem_3_3 (d : Degree) :
 def ends_in_s0 (u : D∞) : Prop := (reducedWord u).getLast? = some 0
 def starts_with_s1 (v : D∞) : Prop := (reducedWord v).head? = some 1
 
--- 辅助引理：alternating 列表非空时的首元素
-lemma alternating_head (s : Fin 2) (n : ℕ) (hn : n > 0) :
-    (alternating s n).head? = some s := by
-  cases n with
-  | zero => omega
-  | succ k => simp [alternating]
+lemma reducedWord_r_nonneg (k : ℤ) (hk : k ≥ 0) :
+    reducedWord (r k) = alternatingWord 0 1 (2 * k.natAbs) := by
+  simp [reducedWord, hk]
+
+lemma reducedWord_r_neg (k : ℤ) (hk : ¬k ≥ 0) :
+    reducedWord (r k) = alternatingWord 1 0 (2 * k.natAbs) := by
+  simp [reducedWord, hk]
+
+lemma reducedWord_sr_pos (k : ℤ) (hk : k > 0) :
+    reducedWord (sr k) = alternatingWord 0 1 (2 * k.natAbs - 1) := by
+  simp [reducedWord, hk]
+
+lemma reducedWord_sr_nonpos (k : ℤ) (hk : ¬k > 0) :
+    reducedWord (sr k) = alternatingWord 1 0 (2 * k.natAbs + 1) := by
+  simp [reducedWord, hk]
 
 lemma s_alpha_starts_with (α : Root) :
     (reducedWord (s_α α)).head? = some (if α.a > α.b then 0 else 1) := by
   unfold s_α
   split_ifs with h
-  · -- 情况 1: α.a > α.b
-    rcases α.sub_one with hsub | hsub
+  · rcases α.sub_one with hsub | hsub
     · have h_sum : α.a + α.b = 2 * α.b + 1 := by omega
-      rw [h_sum, alternating_prod_odd]
-      simp only [Fin.isValue, reduceIte]
-      change (reducedWord (sr (-↑α.b))).head? = some 0
-      unfold reducedWord
-      have h_not_pos : ¬((-↑α.b : ℤ) > 0) := by
-        simp only [Left.neg_pos_iff]
-        omega
-      simp only [h_not_pos, reduceIte]
-      exact alternating_head 0 (2 * α.b + 1) (by omega)
+      rw [h_sum]
+      change (reducedWord (cs.wordProd (alternatingWord 1 0 (2 * α.b + 1)))).head? = some 0
+      rw [alternating_reducedWord 1 0 (2 * α.b + 1) (by decide)]
+      simpa using (alternatingWord_head_odd 1 0 α.b)
     · omega
-  · -- 情况 2: α.a ≤ α.b
-    rcases α.sub_one with hsub | hsub
+  · rcases α.sub_one with hsub | hsub
     · omega
     · have h_sum : α.a + α.b = 2 * α.a + 1 := by omega
-      rw [h_sum, alternating_prod_odd]
-      simp only [Fin.isValue, one_ne_zero, reduceIte]
-      change (reducedWord (sr (↑α.a + 1))).head? = some 1
-      unfold reducedWord
-      have h_pos : ((α.a : ℤ) + 1 > 0) := by omega
-      simp only [h_pos, reduceIte]
-      have h_natAbs : ((α.a : ℤ) + 1).natAbs = α.a + 1 := by omega
-      simp only [h_natAbs]
-      have h_eq : 2 * (α.a + 1) - 1 = 2 * α.a + 1 := by omega
-      rw [h_eq]
-      exact alternating_head 1 (2 * α.a + 1) (by omega)
+      rw [h_sum]
+      change (reducedWord (cs.wordProd (alternatingWord 0 1 (2 * α.a + 1)))).head? = some 1
+      rw [alternating_reducedWord 0 1 (2 * α.a + 1) (by decide)]
+      simpa using (alternatingWord_head_odd 0 1 α.a)
 
-
--- 奇数长度的 alternating 列表尾元素是 s
-lemma alternating_getLast_odd (s : Fin 2) (k : ℕ) :
-    (alternating s (2 * k + 1)).getLast? = some s := by
-  induction k generalizing s with
-  | zero => simp [alternating]
-  | succ k ih =>
-    rw [show 2 * (k + 1) + 1 = 2 * k + 1 + 2 by omega, alternating_add_two]
-    simp only [Fin.isValue, List.getLast?_cons_cons]
-    exact ih s
-
--- 偶数长度（非零）的 alternating 列表尾元素是 s + 1
-lemma alternating_getLast_even (s : Fin 2) (k : ℕ) (hk : k > 0) :
-    (alternating s (2 * k)).getLast? = some (s + 1) := by
-  induction k with
-  | zero => omega
-  | succ k ih =>
-    cases k with
-    | zero =>
-      simp only [alternating, Fin.isValue, List.getLast?_cons_cons,
-        List.getLast?_singleton]
-    | succ k' =>
-      rw [show 2 * (k' + 1 + 1) = 2 * (k' + 1) + 2 by omega, alternating_add_two]
-      simp only [Fin.isValue, List.getLast?_cons_cons]
-      have hk1 : k' + 1 > 0 := by omega
-      exact ih hk1
-
--- 刻画 ends_in_s0 的具体条件
 lemma ends_in_s0_r (k : ℤ) : ends_in_s0 (r k) ↔ k < 0 := by
-  unfold ends_in_s0 reducedWord
-  simp only [ge_iff_le, Fin.isValue]
+  unfold ends_in_s0
   constructor
   · intro h
-    split_ifs at h with hk
-    · by_cases hk0 : k = 0
-      · simp [hk0, alternating] at h
+    by_cases hk : k ≥ 0
+    · rw [reducedWord_r_nonneg k hk] at h
+      by_cases hk0 : k = 0
+      · subst hk0
+        exfalso
+        simp [alternatingWord] at h
       · have hpos : k.natAbs > 0 := Int.natAbs_pos.mpr hk0
-        rw [alternating_getLast_even 0 k.natAbs hpos] at h
+        have hlast := alternatingWord_getLast_pos 0 1 (2 * k.natAbs) (by omega)
+        rw [hlast] at h
+        exfalso
         simp at h
-    · push_neg at hk; exact hk
+    · exact lt_of_not_ge hk
   · intro hk
-    simp only [not_le.mpr hk, reduceIte]
-    have hpos : k.natAbs > 0 := Int.natAbs_pos.mpr (ne_of_lt hk)
-    rw [alternating_getLast_even 1 k.natAbs hpos]
-    simp [Fin.add_def]
+    rw [reducedWord_r_neg k (not_le.mpr hk)]
+    have hlast := alternatingWord_getLast_pos 1 0 (2 * k.natAbs) (by omega)
+    simp [hlast]
 
 lemma ends_in_s0_sr (k : ℤ) : ends_in_s0 (sr k) ↔ k ≤ 0 := by
-  unfold ends_in_s0 reducedWord
-  simp only [Fin.isValue]
+  unfold ends_in_s0
   constructor
   · intro h
-    split_ifs at h with hk
-    · have hpos : k.natAbs > 0 := Int.natAbs_pos.mpr (ne_of_gt hk)
-      have hlen : 2 * k.natAbs - 1 = 2 * (k.natAbs - 1) + 1 := by omega
-      rw [hlen, alternating_getLast_odd] at h
+    by_cases hk : k > 0
+    · rw [reducedWord_sr_pos k hk] at h
+      have hlast := alternatingWord_getLast_pos 0 1 (2 * k.natAbs - 1) (by omega)
+      rw [hlast] at h
+      exfalso
       simp at h
-    · push_neg at hk; exact hk
+    · exact le_of_not_gt hk
   · intro hk
-    simp only [not_lt.mpr hk, reduceIte]
-    rw [alternating_getLast_odd]
+    rw [reducedWord_sr_nonpos k (not_lt.mpr hk)]
+    have hlast := alternatingWord_getLast_pos 1 0 (2 * k.natAbs + 1) (by omega)
+    simp [hlast]
 
 lemma starts_with_s1_r (k : ℤ) : starts_with_s1 (r k) ↔ k < 0 := by
-  unfold starts_with_s1 reducedWord
-  simp only [ge_iff_le, Fin.isValue]
+  unfold starts_with_s1
   constructor
   · intro h
-    split_ifs at h with hk
-    · by_cases hk0 : k = 0
-      · simp [hk0, alternating] at h
+    by_cases hk : k ≥ 0
+    · rw [reducedWord_r_nonneg k hk] at h
+      by_cases hk0 : k = 0
+      · subst hk0
+        exfalso
+        simp [alternatingWord] at h
       · have hpos : k.natAbs > 0 := Int.natAbs_pos.mpr hk0
-        have hlen : 2 * k.natAbs > 0 := by omega
-        rw [alternating_head 0 (2 * k.natAbs) hlen] at h
+        have hhead := alternatingWord_head_even_pos 0 1 k.natAbs hpos
+        rw [hhead] at h
+        exfalso
         simp at h
-    · push_neg at hk; exact hk
+    · exact lt_of_not_ge hk
   · intro hk
-    simp only [not_le.mpr hk, reduceIte]
-    have hpos : k.natAbs > 0 := Int.natAbs_pos.mpr (ne_of_lt hk)
-    have hlen : 2 * k.natAbs > 0 := by omega
-    exact alternating_head 1 (2 * k.natAbs) hlen
+    rw [reducedWord_r_neg k (not_le.mpr hk)]
+    have hk0 : k ≠ 0 := ne_of_lt hk
+    have hpos : k.natAbs > 0 := Int.natAbs_pos.mpr hk0
+    have hhead := alternatingWord_head_even_pos 1 0 k.natAbs hpos
+    simp [hhead]
 
 lemma starts_with_s1_sr (k : ℤ) : starts_with_s1 (sr k) ↔ k > 0 := by
-  unfold starts_with_s1 reducedWord
-  simp only [Fin.isValue]
+  unfold starts_with_s1
   constructor
   · intro h
-    split_ifs at h with hk
+    by_cases hk : k > 0
     · exact hk
-    · push_neg at hk
-      have hlen : 2 * k.natAbs + 1 > 0 := by omega
-      rw [alternating_head 0 (2 * k.natAbs + 1) hlen] at h
+    · rw [reducedWord_sr_nonpos k hk] at h
+      have hhead := alternatingWord_head_odd 1 0 k.natAbs
+      rw [hhead] at h
+      exfalso
       simp at h
   · intro hk
-    simp only [hk, reduceIte]
-    have hpos : k.natAbs > 0 := Int.natAbs_pos.mpr (ne_of_gt hk)
-    have hlen : 2 * k.natAbs - 1 > 0 := by omega
-    exact alternating_head 1 (2 * k.natAbs - 1) hlen
+    rw [reducedWord_sr_pos k hk]
+    have hhead := alternatingWord_head_odd 0 1 (k.natAbs - 1)
+    have hlen : 2 * k.natAbs - 1 = 2 * (k.natAbs - 1) + 1 := by omega
+    simpa [hlen] using hhead
 
 lemma length_add_of_ends_s0_starts_s1 (u v : Vertex)
     (hu : ends_in_s0 u) (hv : starts_with_s1 v) : ℓ (u * v) = ℓ u + ℓ v := by
@@ -718,7 +732,8 @@ lemma length_add_of_ends_s0_starts_s1 (u v : Vertex)
       simp only [r_mul_r, length_r]
       have h : (ku' + kv').natAbs = ku'.natAbs + kv'.natAbs :=
         Int.natAbs_add_of_nonpos (le_of_lt hu') (le_of_lt hv')
-      rw [h]; ring
+      rw [h]
+      ring
     | sr kv =>
       let kv' : ℤ := kv
       have hv' : kv' > 0 := by
@@ -727,11 +742,14 @@ lemma length_add_of_ends_s0_starts_s1 (u v : Vertex)
       have h_pos : kv' - ku' > 0 := by linarith
       have h_natAbs : (kv' - ku').natAbs = kv'.natAbs + ku'.natAbs := by
         rw [show kv' - ku' = kv' + (-ku') by ring,
-        Int.natAbs_add_of_nonneg (le_of_lt hv') (by linarith : (0 : ℤ) ≤ -ku'), Int.natAbs_neg]
+          Int.natAbs_add_of_nonneg (le_of_lt hv') (by linarith : (0 : ℤ) ≤ -ku'),
+          Int.natAbs_neg]
       simp only [r_mul_sr, length_r, length_sr]
       split_ifs with h1
-      · rw [h_natAbs]; omega
-      · exfalso; exact h1 h_pos
+      · rw [h_natAbs]
+        omega
+      · exfalso
+        exact h1 h_pos
   | sr ku =>
     let ku' : ℤ := ku
     have hu' : ku' ≤ 0 := by
@@ -749,8 +767,10 @@ lemma length_add_of_ends_s0_starts_s1 (u v : Vertex)
         Int.natAbs_add_of_nonpos hu' (le_of_lt hv')
       simp only [sr_mul_r, length_sr, length_r]
       split_ifs with h1
-      · exfalso; exact h_sum_not_pos h1
-      · rw [h_natAbs]; omega
+      · exfalso
+        exact h_sum_not_pos h1
+      · rw [h_natAbs]
+        omega
     | sr kv =>
       let kv' : ℤ := kv
       have hv' : kv' > 0 := by
@@ -758,34 +778,100 @@ lemma length_add_of_ends_s0_starts_s1 (u v : Vertex)
         exact (starts_with_s1_sr kv').mp this
       have h_natAbs : (kv' - ku').natAbs = kv'.natAbs + ku'.natAbs := by
         rw [show kv' - ku' = kv' + (-ku') by ring,
-        Int.natAbs_add_of_nonneg (le_of_lt hv') (by linarith : (0 : ℤ) ≤ -ku'), Int.natAbs_neg]
+          Int.natAbs_add_of_nonneg (le_of_lt hv') (by linarith : (0 : ℤ) ≤ -ku'),
+          Int.natAbs_neg]
       simp only [sr_mul_sr, length_r, length_sr]
       split_ifs with h1
-      · exfalso; exact h_u_not_pos h1
-      · rw [h_natAbs]; omega
+      · exfalso
+        exact h_u_not_pos h1
+      · rw [h_natAbs]
+        omega
 
-lemma degree_of_s_alpha (α : Root) : φ (s_α α) = α.toDegree := φ_s_alpha_eq α
+lemma not_length_add_of_ends_s0_mul_r_pos (u : Vertex) (k : ℤ)
+    (hu : ends_in_s0 u) (hk : 0 < k) :
+    ℓ (u * r k) ≠ ℓ u + ℓ (r k) := by
+  cases u with
+  | r m =>
+    let m' : ℤ := m
+    have hm : m' < 0 := (ends_in_s0_r m').mp hu
+    have hlen_u : ℓ (r m') = 2 * m'.natAbs := by simp [length_r]
+    have hlen_v : ℓ (r k) = 2 * k.natAbs := by simp [length_r]
+    have hlen_prod : ℓ (r m' * r k) = 2 * (m' + k).natAbs := by simp [r_mul_r, length_r]
+    intro heq
+    rw [hlen_u, hlen_v, hlen_prod] at heq
+    have h_abs : (m' + k).natAbs ≤ m'.natAbs + k.natAbs := Int.natAbs_add_le m' k
+    omega
+  | sr m =>
+    let m' : ℤ := m
+    have hm : m' ≤ 0 := (ends_in_s0_sr m').mp hu
+    have hlen_u : ℓ (sr m') = 2 * m'.natAbs + 1 := by
+      simp [length_sr, not_lt.mpr hm]
+    have hlen_v : ℓ (r k) = 2 * k.natAbs := by simp [length_r]
+    have hlen_prod : ℓ (sr m' * r k)
+        = (if m' + k > 0 then 2 * (m' + k).natAbs - 1 else 2 * (m' + k).natAbs + 1) := by
+      simp [sr_mul_r, length_sr]
+    intro heq
+    rw [hlen_u, hlen_v, hlen_prod] at heq
+    split_ifs at heq with hmk
+    · have h_abs : (m' + k).natAbs ≤ m'.natAbs + k.natAbs := Int.natAbs_add_le m' k
+      omega
+    · have h_abs : (m' + k).natAbs ≤ m'.natAbs + k.natAbs := Int.natAbs_add_le m' k
+      omega
 
--- 情况 1: d.b > d.a
+lemma not_length_add_of_ends_s0_mul_sr_nonpos (u : Vertex) (k : ℤ)
+    (hu : ends_in_s0 u) (hk : k ≤ 0) :
+    ℓ (u * sr k) ≠ ℓ u + ℓ (sr k) := by
+  cases u with
+  | r m =>
+    let m' : ℤ := m
+    have hm : m' < 0 := (ends_in_s0_r m').mp hu
+    have hlen_u : ℓ (r m') = 2 * m'.natAbs := by simp [length_r]
+    have hlen_v : ℓ (sr k) = 2 * k.natAbs + 1 := by
+      simp [length_sr, not_lt.mpr hk]
+    have hlen_prod : ℓ (r m' * sr k)
+        = (if k - m' > 0 then 2 * (k - m').natAbs - 1 else 2 * (k - m').natAbs + 1) := by
+      simp [r_mul_sr, length_sr]
+    intro heq
+    rw [hlen_u, hlen_v, hlen_prod] at heq
+    split_ifs at heq with hkm
+    · have h_abs : (k - m').natAbs ≤ k.natAbs + m'.natAbs := Int.natAbs_sub_le k m'
+      omega
+    · have h_abs : (k - m').natAbs ≤ k.natAbs + m'.natAbs := Int.natAbs_sub_le k m'
+      omega
+  | sr m =>
+    let m' : ℤ := m
+    have hm : m' ≤ 0 := (ends_in_s0_sr m').mp hu
+    have hlen_u : ℓ (sr m') = 2 * m'.natAbs + 1 := by
+      simp [length_sr, not_lt.mpr hm]
+    have hlen_v : ℓ (sr k) = 2 * k.natAbs + 1 := by
+      simp [length_sr, not_lt.mpr hk]
+    have hlen_prod : ℓ (sr m' * sr k) = 2 * (k - m').natAbs := by
+      simp [sr_mul_sr, length_r]
+    intro heq
+    rw [hlen_u, hlen_v, hlen_prod] at heq
+    have h_abs : (k - m').natAbs ≤ k.natAbs + m'.natAbs := Int.natAbs_sub_le k m'
+    omega
+
 theorem theorem_3_2_case_b_gt_a (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     (h : d.b > d.a) : IsMaximalIn (s_alpha_d d) (Ad u d) := by
   set w := s_alpha_d d with hw_def
-  -- 计算 root_from_degree d 和 s_alpha_d d 的具体形式
   have hna : ¬(d.a > d.b) := not_lt.mpr (le_of_lt h)
   have h_root : root_from_degree d = ⟨d.a, d.a + 1, Or.inr rfl⟩ := by
     unfold root_from_degree
-    simp only [hna, reduceIte]
-  have hw_eq : w = listToGroup (alternating 1 (2 * d.a + 1)) := by
+    simp only [hna, ↓reduceIte]
+  have hw_eq : w = cs.wordProd (alternatingWord 0 1 (2 * d.a + 1)) := by
     rw [hw_def]
     unfold s_alpha_d s_α
     rw [h_root]
-    simp only [gt_iff_lt, add_lt_iff_neg_left, not_lt_zero', reduceIte, Fin.isValue]
-    congr 1
-    ring_nf
+    have hnot : ¬d.a > d.a + 1 := Nat.not_lt.mpr (Nat.le_add_right d.a 1)
+    have hsum : d.a + (d.a + 1) = 2 * d.a + 1 := by omega
+    simp [hnot, hsum]
   have hw_sr : w = sr ((d.a : ℤ) + 1) := by
-    rw [hw_eq, alternating_prod_odd]
-    simp
-  -- 证明 w 以 s1 开头
+    rw [hw_eq, cs.prod_alternatingWord_eq_mul_pow 0 1 (2 * d.a + 1)]
+    have h_div : (2 * d.a + 1) / 2 = d.a := by omega
+    simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr,
+      sub_zero, h_div, r_pow, one_mul, sr_mul_r]
+    simp [add_comm]
   have hw_starts_s1 : starts_with_s1 w := by
     rw [hw_sr, starts_with_s1_sr]
     omega
@@ -802,7 +888,7 @@ theorem theorem_3_2_case_b_gt_a (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
   have hw_len : ℓ w = 2 * d.a + 1 := by
     rw [hw_sr, length_sr]
     have hpos : (d.a : ℤ) + 1 > 0 := by linarith
-    simp only [hpos, reduceIte]
+    simp only [hpos, ↓reduceIte]
     rw [show ((d.a : ℤ) + 1).natAbs = d.a + 1 by rfl]
     ring_nf
     exact succ_add_sub_one (d.a * 2) 1
@@ -827,27 +913,24 @@ theorem theorem_3_2_case_b_gt_a (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
       omega
     · exact hv_eq
 
--- 情况 2: d.a > d.b
 theorem theorem_3_2_case_a_gt_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     (h : d.a > d.b) : IsMaximalIn (s0 * s_alpha_d d) (Ad u d) := by
   set w := s0 * s_alpha_d d with hw_def
-  -- 计算 root_from_degree d 的具体形式
   have h_root : root_from_degree d = ⟨d.b + 1, d.b, Or.inl rfl⟩ := by
     unfold root_from_degree
-    simp only [h, reduceIte]
-  -- s_alpha_d d = sr (-(d.b : ℤ))
+    simp only [h, ↓reduceIte]
   have hs_alpha : s_alpha_d d = sr (-(d.b : ℤ)) := by
     unfold s_alpha_d s_α
     rw [h_root]
-    simp only [gt_iff_lt, lt_add_iff_pos_right, zero_lt_one, reduceIte, Fin.isValue]
+    simp only [gt_iff_lt, lt_add_iff_pos_right, zero_lt_one, ↓reduceIte, Fin.isValue]
     have h_sum : d.b + 1 + d.b = 2 * d.b + 1 := by ring
-    rw [h_sum, alternating_prod_odd]
-    simp
-  -- w = s0 * sr (-(d.b)) = r (-(d.b))
+    rw [h_sum, cs.prod_alternatingWord_eq_mul_pow 1 0 (2 * d.b + 1)]
+    have h_div : (2 * d.b + 1) / 2 = d.b := by omega
+    simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr,
+      zero_sub, h_div, r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
   have hw_r : w = r (-(d.b : ℤ)) := by
     rw [hw_def, hs_alpha]
     simp [s0, sr_mul_sr]
-  -- 分 d.b > 0 和 d.b = 0 两种情况
   by_cases hb_pos : d.b > 0
   · have hw_starts_s1 : starts_with_s1 w := by
       rw [hw_r, starts_with_s1_r]
@@ -855,16 +938,13 @@ theorem theorem_3_2_case_a_gt_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
       exact hb_pos
     have h_len : ℓ (u * w) = ℓ u + ℓ w :=
       length_add_of_ends_s0_starts_s1 u w hu hw_starts_s1
-    -- φ w ≤ d
     have h_deg : φ w ≤ d := by
       rw [hw_r]
       simp only [getDegree_r, Int.natAbs_neg, Int.natAbs_natCast, Degreele_le_def, le_refl]
       exact ⟨le_of_lt h, trivial⟩
-    -- ℓ w = 2 * d.b
     have hw_len : ℓ w = 2 * d.b := by
       rw [hw_r, length_r]
       simp
-    -- 任何 v ∈ Ad u d 满足 ℓ v ≤ 2 * d.b
     have hv_len_bound : ∀ v, v ∈ Ad u d → ℓ v ≤ 2 * d.b := by
       intro v ⟨hv_len_eq, hv_deg⟩
       cases v with
@@ -881,43 +961,12 @@ theorem theorem_3_2_case_a_gt_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
             _ ≤ 2 * k.natAbs := Nat.sub_le _ _
             _ ≤ 2 * d.b := Nat.mul_le_mul_left 2 h_les
         · exfalso
-          simp only [gt_iff_lt, not_lt] at hk
           let k' : ℤ := k
-          have hk' : k' ≤ 0 := hk
-          have hlen_v : ℓ (sr k) = 2 * k'.natAbs + 1 := by
-            change ℓ (sr k') = 2 * k'.natAbs + 1
-            simp only [length_sr, not_lt.mpr hk', reduceIte]
-          cases u with
-          | r m =>
-            let m' : ℤ := m
-            have hm : m' < 0 := (ends_in_s0_r m').mp hu
-            have hlen_u : ℓ (r m) = 2 * m'.natAbs := length_r m
-            have h_prod : (r m) * (sr k) = sr (k' - m') := rfl
-            rw [h_prod, hlen_u, hlen_v] at hv_len_eq
-            by_cases h_km : k' - m' > 0
-            · have hlen_prod : ℓ (sr (k' - m')) = 2 * (k' - m').natAbs - 1 := by
-                simp only [length_sr, h_km, reduceIte]
-              rw [hlen_prod] at hv_len_eq
-              have h_abs : (k' - m').natAbs ≤ k'.natAbs + m'.natAbs := Int.natAbs_sub_le k' m'
-              omega
-            · push_neg at h_km
-              have hlen_prod : ℓ (sr (k' - m')) = 2 * (k' - m').natAbs + 1 := by
-                simp only [length_sr, not_lt.mpr h_km, reduceIte]
-              rw [hlen_prod] at hv_len_eq
-              have h_abs : (k' - m').natAbs ≤ k'.natAbs + m'.natAbs := Int.natAbs_sub_le k' m'
-              omega
-          | sr m =>
-            let m' : ℤ := m
-            have hm : m' ≤ 0 := (ends_in_s0_sr m').mp hu
-            have hlen_u : ℓ (sr m) = 2 * m'.natAbs + 1 := by
-              change ℓ (sr m') = 2 * m'.natAbs + 1
-              simp only [length_sr, not_lt.mpr hm, reduceIte]
-            have h_prod : (sr m) * (sr k) = r (k' - m') := by rfl
-            rw [h_prod, hlen_u, hlen_v] at hv_len_eq
-            have hlen_prod : ℓ (r (k' - m')) = 2 * (k' - m').natAbs := by simp only [length_r]
-            rw [hlen_prod] at hv_len_eq
-            have h_abs : (k' - m').natAbs ≤ k'.natAbs + m'.natAbs := Int.natAbs_sub_le k' m'
-            omega
+          have hk' : k' ≤ 0 := by
+            simpa [k', gt_iff_lt] using hk
+          have hv_len_eq' : ℓ (u * sr k') = ℓ u + ℓ (sr k') := by
+            simpa [k'] using hv_len_eq
+          exact (not_length_add_of_ends_s0_mul_sr_nonpos u k' hu hk') hv_len_eq'
     constructor
     · exact ⟨h_len, h_deg⟩
     · intro v hv hv_le
@@ -931,12 +980,6 @@ theorem theorem_3_2_case_a_gt_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     have hw_one : w = 1 := by
       rw [hw_r, hb_zero]
       simp
-    have hw_len : ℓ w = 0 := by
-      rw [hw_one]
-      exact cs.length_one
-    have hw_deg : φ w = ⟨0, 0⟩ := by
-      rw [hw_one]
-      exact getDegree_one
     have hv_one : ∀ v, v ∈ Ad u d → v = 1 := by
       intro v ⟨hv_len_eq, hv_deg⟩
       have hv_len_zero : ℓ v = 0 := by
@@ -954,20 +997,9 @@ theorem theorem_3_2_case_a_gt_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
           have hk_zero : k.natAbs = 0 := Nat.eq_zero_of_le_zero h
           have hk_eq : k = 0 := Int.natAbs_eq_zero.mp hk_zero
           subst hk_eq
-          have hlen_v : ℓ (sr (0 : ℤ)) = 1 := by simp [length_sr]
-          cases u with
-          | r m =>
-            let m' : ℤ := m
-            have hm : m' < 0 := (ends_in_s0_r m').mp hu
-            have hlen_u : ℓ (r m) = 2 * m.natAbs := by simp only [length_r]
-            simp only [r_mul_sr, length_sr, length_r] at hv_len_eq
-            split_ifs at hv_len_eq with h_neg_m_pos <;> omega
-          | sr m =>
-            let m' : ℤ := m
-            have hm : m' ≤ 0 := (ends_in_s0_sr m').mp hu
-            have hm_neg : ¬(m' > 0) := not_lt.mpr hm
-            simp only [sr_mul_sr, length_r, length_sr] at hv_len_eq
-            split_ifs at hv_len_eq with h_m_pos <;> omega
+          have hv_len_eq' : ℓ (u * sr (0 : ℤ)) = ℓ u + ℓ (sr (0 : ℤ)) := by
+            simpa using hv_len_eq
+          exact (not_length_add_of_ends_s0_mul_sr_nonpos u (0 : ℤ) hu (by omega)) hv_len_eq'
       exact (length_eq_zero_iff cs).mp hv_len_zero
     rw [hw_one]
     constructor
@@ -976,58 +1008,54 @@ theorem theorem_3_2_case_a_gt_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
       · simp only [Degreele_le_def]
         exact ⟨Nat.zero_le d.a, Nat.zero_le d.b⟩
     · intro v hv hv_le
-      specialize hv_one v
       symm
-      apply hv_one
-      exact hv
+      exact hv_one v hv
 
--- 情况 3: d.a = d.b
 theorem theorem_3_2_case_a_eq_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     (h : d.a = d.b) : IsMaximalIn (s1 * s_alpha_d (d.sub {a := 0, b := 1})) (Ad u d) := by
   set a := d.a with ha_def
   set w := s1 * s_alpha_d (d.sub {a := 0, b := 1}) with hw_def
   by_cases ha_pos : a > 0
-  · -- 情况: a > 0
-    have h_dsub : d.sub {a := 0, b := 1} = ⟨a, a - 1⟩ := by
+  · have h_dsub : d.sub {a := 0, b := 1} = ⟨a, a - 1⟩ := by
       simp only [Degree.sub, h, Nat.sub_zero]
-      ext <;>
-      simp only
+      ext <;> simp only
       exact h
     have h_a_gt : a > a - 1 := Nat.sub_lt ha_pos (by omega)
     have h_root : root_from_degree (d.sub {a := 0, b := 1}) = ⟨a, a - 1, Or.inl (by omega)⟩ := by
       unfold root_from_degree
       rw [h_dsub]
-      simp only [h_a_gt, reduceIte]
+      simp only [h_a_gt, ↓reduceIte]
       congr
       exact Nat.sub_add_cancel ha_pos
-    -- s_alpha_d (a, a-1) = sr(1-a)
     have hs_alpha : s_alpha_d (d.sub {a := 0, b := 1}) = sr (1 - (a : ℤ)) := by
-      unfold s_alpha_d s_α; rw [h_root]
-      simp only [gt_iff_lt, h_a_gt, reduceIte, Fin.isValue]
-      rw [show a + (a - 1) = 2 * (a - 1) + 1 by omega, alternating_prod_odd]
-      simp only [Fin.isValue, reduceIte]
-      congr
+      unfold s_alpha_d s_α
+      rw [h_root]
+      simp only [gt_iff_lt, h_a_gt, ↓reduceIte, Fin.isValue]
+      rw [show a + (a - 1) = 2 * (a - 1) + 1 by omega]
+      rw [cs.prod_alternatingWord_eq_mul_pow 1 0 (2 * (a - 1) + 1)]
+      have h_div : (2 * (a - 1) + 1) / 2 = a - 1 := by omega
+      simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr,
+        zero_sub, h_div, r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
       have h1 : 1 ≤ a := ha_pos
       rw [Int.ofNat_sub h1]
-      ring
-    -- w = s1 * sr(1-a) = r(-a)
+      ring_nf
     have hw_r : w = r (-(a : ℤ)) := by
-      rw [hw_def, hs_alpha, s1, sr_mul_sr]; congr; ring
-    -- w 以 s1 开头
+      rw [hw_def, hs_alpha, s1, sr_mul_sr]
+      congr
+      ring
     have hw_starts_s1 : starts_with_s1 w := by
       rw [hw_r, starts_with_s1_r]
-      simp only [Left.neg_neg_iff, Nat.cast_pos]; exact ha_pos
-    -- ℓ(u * w) = ℓ u + ℓ w
+      simp only [Left.neg_neg_iff, Nat.cast_pos]
+      exact ha_pos
     have h_len : ℓ (u * w) = ℓ u + ℓ w :=
       length_add_of_ends_s0_starts_s1 u w hu hw_starts_s1
-    -- φ(w) ≤ d
     have h_deg : φ w ≤ d := by
       rw [hw_r]
       simp only [getDegree_r, Int.natAbs_neg, Int.natAbs_natCast, Degreele_le_def]
       exact ⟨le_refl a, le_of_eq h⟩
-    -- ℓ(w) = 2a
-    have hw_len : ℓ w = 2 * a := by rw [hw_r, length_r]; simp
-    -- 任何 v ∈ Ad u d 满足 ℓ(v) ≤ 2a
+    have hw_len : ℓ w = 2 * a := by
+      rw [hw_r, length_r]
+      simp
     have hv_len_bound : ∀ v, v ∈ Ad u d → ℓ v ≤ 2 * a := by
       intro v ⟨hv_len_eq, hv_deg⟩
       cases v with
@@ -1035,20 +1063,9 @@ theorem theorem_3_2_case_a_eq_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
         let k' : ℤ := k
         by_cases hk_sign : 0 < k'
         · exfalso
-          have h_not_starts_s1 : ¬starts_with_s1 (r k) := by
-            rw [starts_with_s1_r]; exact not_lt.mpr (le_of_lt hk_sign)
-          cases u with
-          | r m =>
-            let m' : ℤ := m
-            have hm : m' < 0 := (ends_in_s0_r m').mp hu
-            simp only [r_mul_r, length_r] at hv_len_eq
-            omega
-          | sr m =>
-            let m' : ℤ := m
-            have hm : m' ≤ 0 := (ends_in_s0_sr m').mp hu
-            have hm_neg : ¬(m' > 0) := not_lt.mpr hm
-            simp only [sr_mul_r, length_sr, length_r] at hv_len_eq
-            split_ifs at hv_len_eq <;> omega
+          have hv_len_eq' : ℓ (u * r k') = ℓ u + ℓ (r k') := by
+            simpa [k'] using hv_len_eq
+          exact (not_length_add_of_ends_s0_mul_r_pos u k' hu hk_sign) hv_len_eq'
         · simp only [getDegree_r, Degreele_le_def] at hv_deg
           simp only [length_r]
           exact Nat.mul_le_mul_left 2 hv_deg.1
@@ -1062,60 +1079,33 @@ theorem theorem_3_2_case_a_eq_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
           split_ifs <;> omega
         · exfalso
           have hk_le : k' ≤ 0 := not_lt.mp hk_pos
-          have hlen_v : ℓ (sr k) = 2 * k'.natAbs + 1 := by
-            simp only [length_sr, gt_iff_lt]
-            split
-            · (expose_names; exact False.elim (hk_pos h_1))
-            · simp only [Degreele_le_def, length_sr, gt_iff_lt, not_lt, Nat.add_right_cancel_iff,
-              mul_eq_mul_left_iff, OfNat.ofNat_ne_zero, or_false] at *
-              rfl
-          cases u with
-          | r m =>
-            let m' : ℤ := m
-            have hm : m' < 0 := (ends_in_s0_r m').mp hu
-            simp only [r_mul_sr, length_sr, length_r] at hv_len_eq
-            rw [← hlen_v] at hv_len_eq
-            split_ifs at hv_len_eq <;> omega
-          | sr m =>
-            let m' : ℤ := m
-            have hm : m' ≤ 0 := (ends_in_s0_sr m').mp hu
-            simp only [sr_mul_sr, length_r, length_sr] at hv_len_eq
-            have hlen_u : ℓ (sr m') = 2 * m'.natAbs + 1 := by
-              simp only [length_sr, not_lt.mpr hm, reduceIte]
-            have h_abs : (k' - m').natAbs ≤ k'.natAbs + m'.natAbs := Int.natAbs_sub_le k' m'
-            split_ifs at hv_len_eq <;> omega
-    -- 证明 w 是极大元
+          have hv_len_eq' : ℓ (u * sr k') = ℓ u + ℓ (sr k') := by
+            simpa [k'] using hv_len_eq
+          exact (not_length_add_of_ends_s0_mul_sr_nonpos u k' hu hk_le) hv_len_eq'
     constructor
     · exact ⟨h_len, h_deg⟩
     · intro v hv hv_le
       rcases hv_le with hv_lt | hv_eq
       · have hlen_lt : ℓ w < ℓ v := (lemma_2_3 w v).mp hv_lt
         have hlen_bound := hv_len_bound v hv
-        rw [hw_len] at hlen_lt; omega
+        rw [hw_len] at hlen_lt
+        omega
       · exact hv_eq
-  · -- 情况: a = 0
-    have ha_zero : a = 0 := Nat.eq_zero_of_not_pos ha_pos
+  · have ha_zero : a = 0 := Nat.eq_zero_of_not_pos ha_pos
     have hd_zero : d = ⟨0, 0⟩ := by
       ext <;> simp only
       · exact ha_zero
       · rw [← h, ha_zero]
-    -- 当 a = 0 时，d.sub {a := 0, b := 1} = (0, 0)
     have h_dsub : d.sub {a := 0, b := 1} = ⟨0, 0⟩ := by
-      rw [hd_zero]; rfl
-    -- s_alpha_d (0, 0) = s1
+      rw [hd_zero]
+      rfl
     have hs_alpha : s_alpha_d (d.sub {a := 0, b := 1}) = s1 := by
       rw [h_dsub]
-      unfold s_alpha_d root_from_degree s_α
-      simp only [gt_iff_lt, lt_self_iff_false, reduceIte, Fin.isValue, zero_add,
-        alternating, listToGroup, List.map_cons, List.map_nil,
-        List.prod_cons, List.prod_nil, mul_one]
-      rfl
-    -- w = s1 * s1 = 1
+      decide
     have hw_one : w = 1 := by
       rw [hw_def, hs_alpha, s1]
       simp
     rw [hw_one]
-    -- 证明 Ad u (0, 0) = {1}
     have hv_must_be_one : ∀ v, v ∈ Ad u d → v = 1 := by
       intro v ⟨hv_len_eq, hv_deg⟩
       rw [hd_zero] at hv_deg
@@ -1141,7 +1131,6 @@ theorem theorem_3_2_case_a_eq_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
       symm
       exact hv_must_be_one v hv
 
--- thm3.2下等式(4)
 theorem theorem_3_2_eq_4 (u : Vertex) (d : Degree) (hu : ends_in_s0 u) :
   IsMaximalIn
     (if d.a = d.b then s1 * s_alpha_d (d.sub {a := 0, b := 1})
@@ -1179,20 +1168,18 @@ lemma CurveNeighborhood_max (h : v ∈ CurveNeighborhood u d) :
   rw [h_eq] at h_lt
   exact (lt_self_iff_false w).mp h_lt
 
--- Lemma 3.4: 关于 u, z ∈ Ad(1) 和 v ∈ Γd(u) 的性质
 theorem lemma_3_4_a_1 (u : Vertex) (d : Degree) (z : Vertex) (v : Vertex)
     (hz : z ∈ Ad 1 d) (hv : v ∈ CurveNeighborhood u d) :
     ℓ (u * z) ≤ ℓ v := by
   have h_deg_z : φ z ≤ d := by
       simp only [Ad, one_mul, length_one, zero_add, Degreele_le_def, true_and,
-        Set.mem_setOf_eq] at hz; exact ⟨hz.1,hz.2⟩
-    -- 存在从 1 到 z 的链，度数为 φ(z)
+        Set.mem_setOf_eq] at hz
+      exact ⟨hz.1,hz.2⟩
   have h_chain_z : HasChain 1 z (φ z) := trivial_chain z
   have h_chain_uz : HasChain u (u * z) (getDegree z) :=by
     have := chain_left_mul u 1 z _ h_chain_z
     simp only [mul_one] at this
     exact this
-  --  u * z 在 u 的 ReachableSet 中 (因为 getDegree z ≤ d)
   have h_uz_in_Re : u * z ∈ ReachableSet u d := by
     use getDegree z
   exact CurveNeighborhood_max hv (u * z) h_uz_in_Re
@@ -1204,12 +1191,9 @@ theorem lemma_3_4_a_2 (u : Vertex) (d : Degree) (v : Vertex)
     rw [CurveNeighborhood] at hv
     exact hv.1
   rcases h_v_reachable with ⟨dv, h_chain_v, h_dv_le_d⟩
-  -- 链左乘 u⁻¹
   have h_chain_inv_u_v : HasChain (u⁻¹ * u) (u⁻¹ * v) dv := chain_left_mul u⁻¹ u v dv h_chain_v
   simp only [inv_mul_cancel] at h_chain_inv_u_v
-  -- Lemma 2.5 (b)
   have h_phi_le_dv := lemma_2_5_b 1 (u⁻¹ * v) dv h_chain_inv_u_v
-  -- 结合 dv ≤ d →  φ(u⁻¹v) ≤ d
   simp only [inv_one, one_mul, Degreele_le_def] at h_phi_le_dv
   exact le_trans h_phi_le_dv h_dv_le_d
 
@@ -1219,16 +1203,12 @@ theorem lemma_3_4_b (u : Vertex) (d : Degree) (z : Vertex) (v : Vertex)
   rw [CurveNeighborhood] at hv
   rcases hv with ⟨h_v_in_Re, -⟩
   rcases h_v_in_Re with ⟨dv, h_chain_v, h_dv_le_d⟩
-  -- 链左乘 u⁻¹
   have h_chain_inv : HasChain (u⁻¹ * u) (u⁻¹ * v) dv := chain_left_mul u⁻¹ u v dv h_chain_v
   simp only [inv_mul_cancel] at h_chain_inv
-  --  u⁻¹v ∈ 1 的ReachableSet
   set w := u⁻¹ * v with hw
   have h_w_in_Re : w ∈ ReachableSet 1 d := by use dv
-  -- z 的极大性
   apply CurveNeighborhood_max hz w h_w_in_Re
 
--- Helper: sign conditions from isLeftDescent
 lemma left_descent_0_r_pos (k : ℤ)
     (h : cs.IsLeftDescent (r k) (0 : Fin 2)) : 0 < k := by
   rw [cs.isLeftDescent_iff] at h
@@ -1261,7 +1241,6 @@ lemma left_descent_1_sr_pos (k : ℤ)
   rw [hs, s1, sr_mul_sr, length_r] at h
   split_ifs at h with hk <;> omega
 
--- Helper: degree monotonicity under left descent
 lemma degree_le_of_left_descent (i : Fin 2) (z : D∞)
     (hi : cs.IsLeftDescent z i) : φ (f i * z) ≤ φ z := by
   fin_cases i
@@ -1290,7 +1269,6 @@ lemma degree_le_of_left_descent (i : Fin 2) (z : D∞)
       rw [this]
       omega
 
--- Helper: not reduced + left descent 0 -> ends_in_s0
 lemma ends_in_s0_of_not_reduced_descent_0 (u z : D∞)
     (h_nr : ℓ (u * z) < ℓ u + ℓ z) (hi : cs.IsLeftDescent z (0 : Fin 2)) :
     ends_in_s0 u := by
@@ -1331,7 +1309,6 @@ lemma ends_in_s0_of_not_reduced_descent_0 (u z : D∞)
       push_neg at h
       split_ifs at h_nr with h1 h2 <;> omega
 
--- Helper: not reduced + left descent 1 -> not ends_in_s0
 lemma not_ends_in_s0_of_not_reduced_descent_1 (u z : D∞)
     (h_nr : ℓ (u * z) < ℓ u + ℓ z) (hi : cs.IsLeftDescent z (1 : Fin 2)) :
     ¬ends_in_s0 u := by
@@ -1371,7 +1348,6 @@ lemma not_ends_in_s0_of_not_reduced_descent_1 (u z : D∞)
       push_neg at h
       split_ifs at h_nr with h1 <;> omega
 
--- Helper: s0 * z starts with s1 when isLeftDescent z 0
 lemma starts_with_s1_of_s0_mul (z : D∞)
     (hi : cs.IsLeftDescent z (0 : Fin 2)) (hne : f 0 * z ≠ 1) :
     starts_with_s1 (f 0 * z) := by
@@ -1392,7 +1368,6 @@ lemma starts_with_s1_of_s0_mul (z : D∞)
       exact r_zero
     exact Std.lt_of_le_of_ne hle hne0
 
--- Helper: s1 * z does not start with s1 when isLeftDescent z 1
 lemma not_starts_with_s1_of_s1_mul (z : D∞)
     (hi : cs.IsLeftDescent z (1 : Fin 2)) :
     ¬starts_with_s1 (f 1 * z) := by
@@ -1412,7 +1387,6 @@ lemma not_starts_with_s1_of_s1_mul (z : D∞)
     have := left_descent_1_sr_pos k hi
     omega
 
--- Helper: length additivity for not ends_in_s0 and not starts_with_s1
 lemma length_add_of_not_ends_s0_not_starts_s1 (u v : Vertex)
     (hu : ¬ends_in_s0 u) (hv : ¬starts_with_s1 v) : ℓ (u * v) = ℓ u + ℓ v := by
   cases u with
@@ -1545,22 +1519,16 @@ theorem lemma_3_5 (u v : Vertex) (d : Degree) (hv : v ∈ CurveNeighborhood u d)
         contradiction
   · exact lemma_3_4_a_2 u d v hv
 
--- Ad u d 中的元素必然在 Ad 1 d 中
 lemma Ad_u_in_Ad_one (u : Vertex) (d : Degree) (v : Vertex) (h : v ∈ Ad u d) : v ∈ Ad 1 d := by
   rw [Ad] at *
   simp only [one_mul, cs.length_one, zero_add, Set.mem_setOf_eq]
   exact And.imp_left (fun a ↦ trivial) h
 
--- 存在极大元
 lemma exists_max_in_Ad (u : Vertex) (d : Degree) (z : Vertex) (hz : z ∈ Ad u d) :
     ∃ w, IsMaximalIn w (Ad u d) ∧ z ≤ w := by
-  --  Ad u d 中大于等于 z 的子集
   let S_ge_z := { w ∈ Ad u d | z ≤ w }
-  -- 有限
   have h_fin : S_ge_z.Finite := h_finite.subset (Set.sep_subset _ _)
-  -- 非空 (z 自身)
   have h_nonempty : S_ge_z.Nonempty := ⟨z, hz, le_refl z⟩
-  -- 存在极大元
   obtain ⟨m, ⟨hm_in_Ad, h_z_le_m⟩, hm_max_in_subset⟩ :=
     Set.Finite.exists_maximalFor (id) S_ge_z h_fin h_nonempty
   use m
@@ -1578,21 +1546,14 @@ lemma exists_max_in_Ad (u : Vertex) (d : Degree) (z : Vertex) (hz : z ∈ Ad u d
       exact le_antisymm hm_le_v' this
   · exact h_z_le_m
 
--- 如果 w ∈ Ad u d，则 u * w 在 d 范围内Reachable
 lemma reachable_of_Ad (u : Vertex) (d : Degree) (w : Vertex) (h : w ∈ Ad u d) :
     u * w ∈ ReachableSet u d := by
   have c1 := trivial_chain w
-  -- 左乘 u
   have c2 := chain_left_mul u 1 w (getDegree w) c1
   simp only [mul_one] at c2
-  --  u*w in ReachableSet u d
   use getDegree w
   exact ⟨c2, h.2⟩
 
-def lastGen (g : D∞) : Option (Fin 2) := (reducedWord g).getLast?
-def firstGen (g : D∞) : Option (Fin 2) := (reducedWord g).head?
-
---  x, y ∈ Ad u d ，则 x ≤ y ↔ u * x ≤ u * y
 lemma mul_le_mul_left_of_length_add (u : Vertex) (x y : Vertex)
     (hx : ℓ (u * x) = ℓ u + ℓ x) (hy : ℓ (u * y) = ℓ u + ℓ y) :
     x ≤ y ↔ u * x ≤ u * y := by
@@ -1611,19 +1572,16 @@ lemma Lt_iff_le_and_ne (a b : Vertex) : Lt a b ↔ a ≤ b ∧ a ≠ b := by
   · intro h
     constructor
     · left; exact h
-    · rcases h with ⟨d, chain, ne⟩; exact ne
+    · rcases h with ⟨d, chain, ne⟩
+      exact ne
   · rintro ⟨(h_lt | h_eq), h_ne⟩
     · exact h_lt
     · contradiction
 
--- ReachableSet中的任意元素都受某个极大元支配
--- 有限性
 lemma exists_max_ge_in_Reachable (u : Vertex) (d : Degree) (v : Vertex)
     (h : v ∈ ReachableSet u d) :
     ∃ m, m ∈ CurveNeighborhood u d ∧ v ≤ m := by
-  -- 定义受控集
   let S_bound := { x : Vertex | φ (u⁻¹ * x) ≤ d }
-  --  S_bound 有限
   have h_bound_finite : S_bound.Finite := by
     let pre_image := { y : Vertex | φ y ≤ d }
     have h_pre_finite : pre_image.Finite := by
@@ -1631,29 +1589,24 @@ lemma exists_max_ge_in_Reachable (u : Vertex) (d : Degree) (v : Vertex)
       rw [heq]
       exact h_finite
     have : S_bound = (fun y => u * y) '' pre_image := by
-       ext x; simp [S_bound, pre_image]
+       ext x
+       simp [S_bound, pre_image]
     rw [this]
     exact Set.Finite.image _ h_pre_finite
-  -- 证明 ReachableSet u d ⊆ S_bound
   have h_subset : ReachableSet u d ⊆ S_bound := by
     intro x hx
     rcases hx with ⟨dx, chain, h_dx_le_d⟩
-    -- 左乘 u⁻¹
     have chain_inv := chain_left_mul u⁻¹ u x dx chain
     simp only [inv_mul_cancel] at chain_inv
-    -- Lemma 2.5(b):  1 -> y 的链，φ(y) ≤ degree
     have h_phi := lemma_2_5_b 1 (u⁻¹ * x) dx
     simp only [inv_one, one_mul] at h_phi
     exact le_trans (h_phi chain_inv) h_dx_le_d
-  -- def ReachableSet 中大于等于 v 的子集
   let S_ge_v := { m ∈ ReachableSet u d | v ≤ m }
-  -- 有限 非空
   have h_fin_sub : S_ge_v.Finite :=by
     apply Set.Finite.subset h_bound_finite
     intro x ⟨hx_reach, _⟩
     exact h_subset hx_reach
   have h_nonempty : S_ge_v.Nonempty := ⟨v, h, le_refl v⟩
-  -- 取极大元
   obtain ⟨m, ⟨hm_reach, h_v_le_m⟩, hm_max⟩ :=
     Set.Finite.exists_maximalFor id S_ge_v h_fin_sub h_nonempty
   use m
@@ -1663,7 +1616,7 @@ lemma exists_max_ge_in_Reachable (u : Vertex) (d : Degree) (v : Vertex)
     · exact hm_reach
     · intro v' hv' hm_le_v'
       have h_v'_in_S : v' ∈ S_ge_v := ⟨hv', le_trans h_v_le_m hm_le_v'⟩
-      have := hm_max  h_v'_in_S hm_le_v'
+      have := hm_max h_v'_in_S hm_le_v'
       simp only [id_eq] at this
       exact le_antisymm hm_le_v' this
   · exact h_v_le_m
@@ -1673,27 +1626,19 @@ theorem main_theorem (u : Vertex) (d : Degree) :
   apply Set.ext
   intro v
   constructor
-  -- v ∈ Ω_d(u) → v = u * w (w 为极大元)
   · intro hv
-    -- 由 Lemma 3.5, z = u⁻¹v ∈ Ad u d
     have h_z_in_Ad : (u⁻¹ * v) ∈ Ad u d := lemma_3_5 u v d hv
     let z := u⁻¹ * v
     have h_v_eq : v = u * z := by simp [z]
-    -- 在 Ad u d 中存在极大元 w 使得 z ≤ w
     obtain ⟨w, hw_max, h_z_le_w⟩ := exists_max_in_Ad u d z h_z_in_Ad
     have hw_in_Ad1 : w ∈ Ad 1 d := Ad_u_in_Ad_one u d w hw_max.1
-    -- Lemma 3.4(a): ℓ(uw) ≤ ℓ(v)
     have h_len_uw_le_v := lemma_3_4_a_1 u d w v hw_in_Ad1 hv
-    -- v = u * z, z ∈ Ad u d =>
     have h_len_v : ℓ v = ℓ u + ℓ z := by
       rw [h_v_eq]
       exact h_z_in_Ad.1
-    -- w ∈ Ad u d => ℓ(uw) = ℓ(u) + ℓ(w)
     have h_len_uw : ℓ (u * w) = ℓ u + ℓ w := hw_max.1.1
-    -- ℓ(u) + ℓ(w) ≤ ℓ(u) + ℓ(z) => ℓ(w) ≤ ℓ(z)
     rw [h_len_v, h_len_uw] at h_len_uw_le_v
     have h_len_w_le_z : ℓ w ≤ ℓ z := Nat.le_of_add_le_add_left h_len_uw_le_v
-    --z ≤ w ∧ ℓ(w) ≤ ℓ(z) => z = w
     have h_z_eq_w : z = w := by
       by_contra h_neq
       have h_lt : z < w := lt_of_le_of_ne h_z_le_w h_neq
@@ -1705,33 +1650,24 @@ theorem main_theorem (u : Vertex) (d : Degree) :
     constructor
     · exact hw_max
     · rw [h_v_eq, h_z_eq_w]
-  --  (⊇): v = u * w (w maximal) → v ∈ Ω_d(u)
   · rintro ⟨w, hw_max, rfl⟩
-    -- reachable
     have h_reach : u * w ∈ ReachableSet u d := reachable_of_Ad u d w hw_max.1
-    -- maximal
     rw [CurveNeighborhood]
     refine ⟨h_reach, ?_⟩
     intro v' h_reach_v' h_le_v_v'
-    -- 若存在 v' reachable且 u*w ≤ v', v'被某个极大元支配
     obtain ⟨m, hm_max, h_v'_le_m⟩ := exists_max_ge_in_Reachable u d v' h_reach_v'
     have h_m_in_gamma : m ∈ CurveNeighborhood u d := hm_max
     have h_z'_in_Ad : (u⁻¹ * m) ∈ Ad u d := lemma_3_5 u m d h_m_in_gamma
     let w' := u⁻¹ * m
     have h_m_eq : m = u * w' := by simp [w']
-    -- u*w ≤ v' ≤ m => u*w ≤ u*w'
     have h_uw_le_uw' : u * w ≤ u * w' :=
         le_trans h_le_v_v' (by rw [h_m_eq] at h_v'_le_m; exact h_v'_le_m)
-    --w w' ∈ Ad，左乘保序
     have h_w_le_w' : w ≤ w' := by
       rw [← mul_le_mul_left_of_length_add u w w' hw_max.1.1 h_z'_in_Ad.1] at h_uw_le_uw'
       exact h_uw_le_uw'
-    --  w 的极大性
     have h_w_eq_w' : w = w' :=
       hw_max.2 w' h_z'_in_Ad h_w_le_w'
-    -- w = w' => u*w = u*w' => v = m
     have h_v_eq_m : u * w = m := by rw [h_m_eq, ←h_w_eq_w']
-    -- u*w ≤ v' ≤ m ∧ u*w = m => v' = m = u*w
     have h_v'_eq_v : v' = u * w := by
       have h_m_eq_uw : m = u * w := h_v_eq_m.symm
       rw [h_m_eq_uw] at h_v'_le_m
@@ -1740,16 +1676,13 @@ theorem main_theorem (u : Vertex) (d : Degree) :
 
 example : CurveNeighborhood 1 {a := 2, b := 2} = { s0s1_pow 2, s1s0_pow 2 } := by
   rw [theorem_3_3_eq {a := 2, b := 2} rfl]
---listToGroup (alternating 0 6) = r 3
-example : CurveNeighborhood s0 {a := 2, b := 3} = {listToGroup (alternating 0 6)} := by
+
+example : CurveNeighborhood s0 {a := 2, b := 3} = {s0 * s_alpha_d {a := 2, b := 3}} := by
   rw [main_theorem s0 {a := 2, b := 3}]
   have h_ends : ends_in_s0 s0 := by
-    simp only [ends_in_s0, reducedWord, s0, gt_iff_lt, lt_self_iff_false, reduceIte, alternating,
-      Fin.isValue, zero_add, Int.natAbs_zero, mul_zero, List.getLast?_singleton]
+    rw [s0, ends_in_s0_sr]
   have h_u_ne_1 : s0 ≠ 1 := by
-    intro h
-    have h_len : ℓ s0 = ℓ 1 := by rw [h]
-    simp [length_s0, length_one] at h_len
+    decide
   have h_max := theorem_3_2_eq_4 s0 {a := 2, b := 3} h_ends
   rw [if_neg (by norm_num), if_pos (by norm_num)] at h_max
   have h_unique := lemma_3_1_1 s0 {a := 2, b := 3} h_u_ne_1
@@ -1759,19 +1692,13 @@ example : CurveNeighborhood s0 {a := 2, b := 3} = {listToGroup (alternating 0 6)
   · rintro ⟨w, hw_is_max, rfl⟩
     have h_w_eq : w = s_alpha_d {a := 2, b := 3} := by
       rcases h_unique with ⟨m, hm, h_uniq_eq⟩
-      have h1 : w = m :=by exact h_uniq_eq w hw_is_max
+      have h1 : w = m := by exact h_uniq_eq w hw_is_max
       have h2 : s_alpha_d {a := 2, b := 3} = m := h_uniq_eq _ h_max
       rw [h1, h2]
     rw [h_w_eq]
-    unfold s_alpha_d s_α
-    dsimp only [root_from_degree]
-    simp only [Fin.isValue, gt_iff_lt, reduceLT, reduceIte, reduceAdd]
-    simp [alternating, listToGroup, f, s0]
   · rintro rfl
-    exists s_alpha_d {a := 2, b := 3}
+    exact ⟨s_alpha_d {a := 2, b := 3}, h_max, rfl⟩
 
---下面为实现可计算版本的代码
--- 可计算的长度函数 (cs.length noncomputable)
 def cLength : D∞ → ℕ
   | r k => 2 * k.natAbs
   | sr k =>
@@ -1784,33 +1711,25 @@ lemma cLength_eq (g : D∞) : cLength g = ℓ g := by
   | r k => simp [cLength]
   | sr k => simp [cLength]
 
--- Degree 的可判定 ≤
 instance instDecidableLeDegree (d1 d2 : Degree) : Decidable (d1 ≤ d2) :=
   inferInstanceAs (Decidable (d1.a ≤ d2.a ∧ d1.b ≤ d2.b))
 
--- 生成指定长度范围内的 D∞ 元素
 def enumerateD_list (n : ℕ) : List D∞ :=
   (List.range (n + 1)).flatMap fun k =>
-    [listToGroup (alternating 0 k), listToGroup (alternating 1 k)]
+    [cs.wordProd (alternatingWord 0 1 k), cs.wordProd (alternatingWord 1 0 k)]
 
 def enumerateD (n : ℕ) : Finset D∞ :=
   (enumerateD_list n).toFinset
 
--- 可计算的 Ad
 def Ad_finset (u : Vertex) (d : Degree) : Finset Vertex :=
   let limit := d.a + d.b + 1
   (enumerateD limit).filter (fun v => cLength (u * v) = cLength u + cLength v ∧ φ v ≤ d)
 
--- 可计算的 CurveNeighborhood
--- 依赖于引理 2.3 (顺序等价于长度) 和 Main Theorem (结构)
 def CurveNeighborhood_computable (u : Vertex) (d : Degree) : Finset Vertex :=
   let A := Ad_finset u d
-  -- 筛选出 A 中的极大元
   let maxA := A.filter (fun w => ∀ w' ∈ A, ¬(cLength w < cLength w'))
-  -- 左乘 u
   maxA.image (fun w => u * w)
 
--- 输出
 instance : ToString (ZMod 0) := inferInstanceAs (ToString ℤ)
 
 instance : Repr D∞ where

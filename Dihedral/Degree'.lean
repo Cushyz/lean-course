@@ -1,6 +1,5 @@
 import Mathlib
-import Dihedral.Basic
-import Dihedral.Length
+import Dihedral.alternatingword
 
 open Nat CoxeterSystem DihedralGroup
 
@@ -15,6 +14,18 @@ def α1 : Root := ⟨0, 1, Or.inr rfl⟩
 
 -- 根的长度为 a + b
 def Root.length (α : Root) : ℕ := α.a + α.b
+
+notation "Λ" => CoxeterSystem.alternatingWord
+
+@[simp]
+lemma length_r (k : ℤ) : ℓ (r k) = 2 * k.natAbs := by
+  simp only [length_eq, reducedWord, ge_iff_le, Fin.isValue]
+  aesop
+
+@[simp]
+lemma length_sr (k : ℤ) : ℓ (sr k) = if k > 0 then 2 * k.natAbs - 1 else 2 * k.natAbs + 1 := by
+  simp only [length_eq, reducedWord, gt_iff_lt, Fin.isValue]
+  aesop
 
 lemma lemma_2_1_1 (u : D∞) : ℓ u = ℓ u⁻¹ :=
   (cs.length_inv u).symm
@@ -34,18 +45,18 @@ theorem lemma_2_1_4 (u v : D∞) (huv : ℓ u ≤ ℓ v) :
   | r u =>
     cases v with
     | r v =>
-      simp [r_mul_r, length_r] at *
+      simp only [r_mul_r, length_r] at *
       omega
     | sr v =>
-      simp [r_mul_sr, length_r, length_sr] at *
+      simp only [r_mul_sr, length_r, length_sr] at *
       split_ifs at * <;> omega
   | sr u =>
     cases v with
     | r v =>
-      simp [sr_mul_r, length_r, length_sr] at *
+      simp only [sr_mul_r, length_r, length_sr] at *
       split_ifs at * <;> omega
     | sr v =>
-      simp [sr_mul_sr, length_r, length_sr] at *
+      simp only [sr_mul_sr, length_r, length_sr] at *
       split_ifs at * <;> omega
 
 structure Degree where
@@ -73,6 +84,7 @@ theorem Degree.ext {d1 d2 : Degree} (h0 : d1.a = d2.a) (h1 : d1.b = d2.b) : d1 =
   cases d1; cases d2
   simp only at h0 h1
   rw [h0, h1]
+
 @[simp]
 instance : AddCommMonoid Degree where
   add := (· + ·)
@@ -125,22 +137,77 @@ def Root.toDegree (α : Root) : Degree :=⟨α.a, α.b⟩
 -- def顶点 (Vertices)。在 D∞ 的情况下，顶点是群元素
 abbrev Vertex := D∞
 
--- 将根映射到 D∞ 中的反射元素
+lemma getDegree_alternating_0_even (k : ℕ) :
+    getDegree (cs.wordProd (alternatingWord 0 1 (2 * k))) = ⟨k, k⟩ := by
+  rw [cs.prod_alternatingWord_eq_mul_pow 0 1 (2 * k)]
+  simp only [even_two, Even.mul_right, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr,
+    sub_zero, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, mul_div_cancel_left₀, r_pow, one_mul]
+  simp only [getDegree, Int.natAbs]
+
+lemma getDegree_alternating_1_even (k : ℕ) :
+    getDegree (cs.wordProd (alternatingWord 1 0 (2 * k))) = ⟨k, k⟩ := by
+  rw [cs.prod_alternatingWord_eq_mul_pow 1 0 (2 * k)]
+  simp only [even_two, Even.mul_right, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr,
+    zero_sub, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, mul_div_cancel_left₀, r_pow, neg_mul,
+    one_mul]
+  simp [getDegree]
+  omega
+
+lemma getDegree_alternatin_even {s} (k : ℕ) :
+    getDegree (cs.wordProd (alternatingWord s (1-s) (2 * k))) = ⟨k, k⟩  := by
+  fin_cases s <;>
+  simp only [Fin.zero_eta, Fin.isValue, sub_zero]
+  · exact getDegree_alternating_0_even k
+  · exact getDegree_alternating_1_even k
+
+lemma getDegree_alternating_0_odd (k : ℕ) :
+    getDegree (cs.wordProd (alternatingWord 0 1 (2 * k + 1))) = ⟨k, k + 1⟩ := by
+  rw [cs.prod_alternatingWord_eq_mul_pow 0 1 (2 * k + 1)]
+  simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr, sub_zero,
+    r_pow, one_mul, sr_mul_r]
+  have h_div : (2 * k + 1) / 2 = k := by omega
+  rw [h_div]
+  have h1 : 0 ≤ 1 + (k : ℤ) := by linarith
+  have h2 : 0 ≠  1 + (k : ℤ) := by norm_cast; linarith
+  simp [getDegree, ge_iff_le, h1, ↓reduceIte, h2.symm, Degree.mk.injEq]
+  omega
+
+lemma getDegree_alternating_1_odd (k : ℕ) :
+    getDegree (cs.wordProd (alternatingWord 1 0 (2 * k + 1))) = ⟨k+1, k⟩ := by
+  rw [cs.prod_alternatingWord_eq_mul_pow 1 0 (2 * k + 1)]
+  simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr, zero_sub,
+    r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
+  have h_div : (2 * k + 1) / 2 = k := by omega
+  rw [h_div]
+  simp only [getDegree, ge_iff_le]
+  split_ifs with h h1
+  · simp only [Degree.mk.injEq, Nat.right_eq_add]
+    have : k = 0 := by omega
+    omega
+  · exfalso
+    have : k = 0 := by omega
+    aesop
+  · simp only [Degree.mk.injEq, Nat.add_right_cancel_iff, and_self]
+    omega
+
+
 def s_α (α : Root) : D∞ :=
   if α.a > α.b then
-    listToGroup (alternating 0 (α.a + α.b))
+    cs.wordProd (Λ  1 0 (α.a + α.b))
   else
-    listToGroup (alternating 1 (α.a + α.b))
+    cs.wordProd (Λ 0 1 (α.a + α.b))
 
 --  s(1,0) = s0
 example : s_α α0 = s0 := by
-  simp [α0, s_α, alternating, listToGroup, f]
+  simp only [s_α, α0, gt_iff_lt, zero_lt_one, ↓reduceIte, Fin.isValue, add_zero, alternatingWord,
+    List.concat_eq_append, List.nil_append, cs.wordProd_singleton, ← s0', s0]
 
 theorem length_root_reflection (α : Root) :
     ℓ (s_α α) = α.a + α.b := by
   rw [s_α]
   split_ifs with h
-  <;>simp [length_alternating]
+  <;>
+  simp [length_eq, alternating_reducedWord]
 
 --顶点 u 和 v 之间存在边，且度为 α。
 def IsEdge (u v : Vertex) (α : Root) : Prop :=
@@ -157,9 +224,10 @@ example : (1 : D∞) —[α0]→ (cs.simple 0) := by
   dsimp [IsEdge]
   rw [one_mul]
   have hα : s_α α0 = s0 := by
-    simp [α0, s_α, alternating, listToGroup, f]
-  have hs : cs.simple 0 = s0 := rfl
-  simp [hα, hs]
+    simp only [s_α, α0, gt_iff_lt, zero_lt_one, ↓reduceIte, Fin.isValue, add_zero, alternatingWord,
+      List.concat_eq_append, List.nil_append, wordProd_singleton, ← s0', s0]
+  rw [hα]
+  rfl
 
 instance : Zero Degree where
   zero := ⟨0, 0⟩
@@ -269,55 +337,43 @@ instance : PartialOrder D∞ where
 
 lemma exists_root_eq_sr (k : ℤ) : ∃ α : Root, s_α α = sr k := by
   by_cases h : k > 0
-  · let a := k.natAbs - 1
+  · -- k > 0, sr k uses alternatingWord 0 1 (2k-1)
+    let a := k.natAbs - 1
     let b := k.natAbs
-    have h_sub : a = b - 1 := rfl
     have h_rel : b = a.succ := by
       dsimp [a, b]
       rw [Nat.sub_add_cancel]
       exact Nat.succ_le_iff.mpr (Int.natAbs_pos.mpr (Int.ne_of_gt h))
     let α : Root := ⟨a, b, Or.inr h_rel⟩
     use α
-    simp only [s_α]
-    have : ¬ (α.a > α.b) := by
-      change ¬ (a > b)
-      linarith
-    simp only [gt_iff_lt, this, ↓reduceIte, Fin.isValue]
-    have h_len : a + b = 2 * k.natAbs - 1 := by
-      dsimp [a, b]; omega
-    have h_pos : k.natAbs ≥ 1 := by
-      exact Nat.succ_le_iff.mpr (Int.natAbs_pos.mpr (Int.ne_of_gt h))
-    rw [h_len, show (2 * k.natAbs - 1) = 2 * (k.natAbs - 1) + 1 by omega]
-    rw [alternating_prod_odd ( k.natAbs - 1) 1]
-    simp only [Fin.isValue, one_ne_zero, ↓reduceIte, sr.injEq]
-    have : ((k.natAbs - 1 : ℕ) : ℤ) + 1 = k := by
-      calc
-          (↑(k.natAbs - 1) : ℤ) + 1
-          = ↑(k.natAbs) := by
-              norm_cast
-              simp [Nat.sub_add_cancel (Nat.succ_le_iff.mpr (Int.natAbs_pos.mpr (Int.ne_of_gt h)))]
-      _ = k := by simpa using (le_of_lt h)
-    rw [this]
-  · let a := k.natAbs + 1
+    dsimp [s_α]
+    have : ¬ (α.a > α.b) := by linarith
+    simp only [this, ↓reduceIte]
+    -- reducedWord(sr k) = alternatingWord 0 1 (2k-1)
+    have h_rw : cs.wordProd (reducedWord (sr k)) = sr k := reducedWord_correct (sr k)
+    dsimp [reducedWord] at h_rw
+    rw [if_pos h] at h_rw
+    rw [← h_rw]
+    congr
+    dsimp [α, a, b]
+    omega
+  · -- k <= 0, sr k uses alternatingWord 1 0 (2|k|+1)
+    let a := k.natAbs + 1
     let b := k.natAbs
     have h_rel : a = b.succ := rfl
     let α : Root := ⟨a, b, Or.inl h_rel⟩
     use α
-    simp only [s_α]
-    have : α.a > α.b := by
-      change a > b
-      linarith
-    simp only [gt_iff_lt, this, ↓reduceIte, Fin.isValue]
-    have h_len : a + b = 2 * k.natAbs + 1 := by
-      dsimp [a, b]; omega
-    rw [h_len]
-    rw [alternating_prod_odd k.natAbs 0]
-    simp
-    have : -((k.natAbs) : ℤ) = k := by
-      have hk : k ≤ 0 := le_of_not_gt h
-      have := Int.ofNat_natAbs_of_nonpos hk
-      linarith
-    simpa using this
+    dsimp [s_α]
+    have : α.a > α.b := by linarith
+    simp only [this, ↓reduceIte]
+    have h_rw : cs.wordProd (reducedWord (sr k)) = sr k := reducedWord_correct (sr k)
+    dsimp [reducedWord] at h_rw
+    rw [if_neg (not_lt.mpr (le_of_not_gt h))] at h_rw
+    --rw [if_neg (not_lt.mpr (le_of_not_gt h))] at h_rw
+    rw [← h_rw]
+    congr 2
+    dsimp [a, b, α]
+    omega
 
 lemma inv_mul_is_sr_of_parity_diff (u v : Vertex)
     (h_parity : (ℓ u) % 2 ≠ (ℓ v) % 2) :
@@ -330,7 +386,7 @@ lemma inv_mul_is_sr_of_parity_diff (u v : Vertex)
     exfalso
     have h_len_g : ℓ g % 2 = 0 := by
       rw [hg, length_r]
-      omega
+      simp
     have h_hom : ℓ g % 2 = (ℓ u + ℓ v) % 2 := by
       dsimp [g]
       rw [cs.length_mul_mod_two, cs.length_inv]
@@ -429,54 +485,92 @@ theorem lemma_2_3 (u v : Vertex) :
         rw [h_len_w]
         omega
       exact Lt_trans h_u_le_w h_w_lt_v
+
 notation "φ" => getDegree
 
 lemma φ_s_alpha_eq (α : Root) : φ (s_α α) = α.toDegree := by
-  simp only [s_α, Root.toDegree]
+  -- s_α α 等于 sr k.
+  simp only [s_α, gt_iff_lt, Fin.isValue, Root.toDegree]
   split_ifs with h_gt
-  · rcases α.sub_one with (h | h)
-    · rw [h, succ_eq_add_one]
-      rw [show α.b + 1 + α.b =2 * α.b + 1  by ring, alternating_prod_odd]
-      simp only [getDegree, Fin.isValue, ↓reduceIte, Int.neg_nonneg, Int.natCast_nonpos_iff,
-        neg_eq_zero, cast_eq_zero, Int.natAbs_neg, Int.natAbs_natCast, ite_eq_right_iff]
-      intro h'
-      simp [h']
-    · linarith
-  · rcases α.sub_one with (h | h)
-    · linarith
-    · rw [h, succ_eq_add_one, ← add_assoc]
-      rw [show α.a + α.a + 1 =2 * α.a + 1  by ring, alternating_prod_odd]
-      simp only [one_ne_zero, reduceIte]
-      have h_nezero : (α.a : ℤ) + 1 ≠ 0 := by omega
-      have h_pos : (α.a : ℤ) + 1 ≥ 0 := by linarith
-      simp [h_pos, getDegree, h_nezero]
-      omega
-
-lemma getDegree_alternating_even (s : Fin 2) (k : ℕ) :
-    φ (listToGroup (alternating s (2 * k))) = ⟨k, k⟩ := by
-    fin_cases s
-    all_goals
-    · simp [getDegree]
-
-lemma getDegree_alternating_odd_0 (k : ℕ) :
-    φ (listToGroup (alternating 0 (2*k + 1))) = ⟨k + 1, k⟩ := by
-    simp only [getDegree, Fin.isValue, alternating_prod_odd, ↓reduceIte, Int.neg_nonneg,
-      Int.natCast_nonpos_iff, neg_eq_zero, cast_eq_zero, Int.natAbs_neg, Int.natAbs_natCast,
-      ite_eq_right_iff]
-    intro a
-    subst a
-    rfl
-
-lemma getDegree_alternating_odd_1 (k : ℕ) :
-    φ (listToGroup (alternating 1 (2*k + 1))) = ⟨k, k + 1⟩ := by
-    simp [getDegree]
-    rfl
+  · have : s_α α = sr (-((α.b) : ℤ)) := by
+      let k : ℤ := -α.b
+      have hk : k ≤ 0 := neg_nonpos.mpr (Nat.cast_nonneg _)
+      have h_len : 2 * k.natAbs + 1 = α.a + α.b := by
+        rw [Int.natAbs_neg, Int.natAbs_natCast]
+        rcases α.sub_one with (h|h)
+        · rw [h]; omega
+        · omega
+      have h_rw := reducedWord_correct (sr k)
+      dsimp [reducedWord] at h_rw
+      rw [if_neg (not_lt.mpr hk)] at h_rw
+      rw [h_len] at h_rw
+      rw [s_α, if_pos h_gt, h_rw]
+    simp only [s_α, gt_iff_lt, h_gt, ↓reduceIte, Fin.isValue] at this
+    rw [this]
+    let k : ℤ := -((α.b) : ℤ)
+    have : k ≤ 0 := neg_nonpos.mpr (Nat.cast_nonneg _)
+    simp only [getDegree, Int.neg_nonneg, Int.natCast_nonpos_iff, neg_eq_zero, cast_eq_zero,
+      Int.natAbs_neg, Int.natAbs_natCast]
+    split_ifs with h_pos
+    · -- k >= 0 -> -b >= 0 -> b=0.
+      have hb : α.b = 0 := by omega
+      have ha : α.a = 1 := by
+        rcases α.sub_one with (h|h)
+        · rw [h, hb]
+        · rw [hb] at h_gt; linarith -- 0 > a impossible if b=a+1
+      rw [hb] at h_pos
+      rw [hb, ha]
+    · -- k < 0.
+      congr
+      rcases α.sub_one with (h|h)
+      · simp at h
+        exact h.symm
+      · linarith
+  · -- α.a <= α.b. Since Root, b = a + 1.
+    have : s_α α = sr ((α.a : ℤ) + 1) := by
+      let k : ℤ := α.a + 1
+      have hk : k > 0 := by norm_cast; omega
+      have h_len : 2 * k.natAbs - 1 = α.a + α.b := by
+         rcases α.sub_one with (h|h)
+         · linarith -- a = b+1 contradicts a <= b
+         · rw [h]; omega
+      have h_rw := reducedWord_correct (sr k)
+      dsimp [reducedWord] at h_rw
+      rw [if_pos hk] at h_rw
+      rw [h_len] at h_rw
+      rw [s_α, if_neg h_gt, h_rw]
+    simp only [s_α, gt_iff_lt, h_gt, ↓reduceIte, Fin.isValue] at this
+    rw [this]
+    let k : ℤ := ((α.a) : ℤ)+1
+    have : 0 ≤ k := by linarith
+    simp only [getDegree, ge_iff_le, this, ↓reduceIte, k]
+    split_ifs with h_pos
+    · exfalso
+      have : 0 < k := by linarith
+      linarith
+    · norm_cast
+      rcases α.sub_one with (h|h)
+      · linarith
+      · congr
+        simp at h
+        exact h.symm
 
 @[simp]
 lemma getDegree_r (k : ℤ) : φ (r k) = ⟨k.natAbs, k.natAbs⟩ := rfl
 
 lemma getDegree_sr (k : ℤ) : φ (sr k) = ⟨(k - 1).natAbs, k.natAbs⟩ := by
-  grind[getDegree]
+  dsimp [getDegree]
+  split_ifs with h h'
+  · if h0 : k = 0 then
+      simp [h0]
+    else
+      simp [h']
+  · congr
+    have hk : 1 ≤ k := lt_of_le_of_ne' h h'
+    omega
+  · congr
+    omega
+
 
 lemma le_mod2_existnat {a b : ℕ} (le : a ≥ b) (meq : (a : ZMod 2) = (b : ZMod 2)) :
     ∃ s : ℕ, a = b + 2 * s := by
