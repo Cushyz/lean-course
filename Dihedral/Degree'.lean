@@ -137,6 +137,60 @@ def Root.toDegree (α : Root) : Degree :=⟨α.a, α.b⟩
 -- def顶点 (Vertices)。在 D∞ 的情况下，顶点是群元素
 abbrev Vertex := D∞
 
+lemma getDegree_alternating_0_even (k : ℕ) :
+    getDegree (cs.wordProd (alternatingWord 0 1 (2 * k))) = ⟨k, k⟩ := by
+  rw [cs.prod_alternatingWord_eq_mul_pow 0 1 (2 * k)]
+  simp only [even_two, Even.mul_right, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr,
+    sub_zero, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, mul_div_cancel_left₀, r_pow, one_mul]
+  simp only [getDegree, Int.natAbs]
+
+lemma getDegree_alternating_1_even (k : ℕ) :
+    getDegree (cs.wordProd (alternatingWord 1 0 (2 * k))) = ⟨k, k⟩ := by
+  rw [cs.prod_alternatingWord_eq_mul_pow 1 0 (2 * k)]
+  simp only [even_two, Even.mul_right, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr,
+    zero_sub, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, mul_div_cancel_left₀, r_pow, neg_mul,
+    one_mul]
+  simp [getDegree]
+  omega
+
+lemma getDegree_alternatin_even {s} (k : ℕ) :
+    getDegree (cs.wordProd (alternatingWord s (1-s) (2 * k))) = ⟨k, k⟩  := by
+  fin_cases s <;>
+  simp only [Fin.zero_eta, Fin.isValue, sub_zero]
+  · exact getDegree_alternating_0_even k
+  · exact getDegree_alternating_1_even k
+
+lemma getDegree_alternating_0_odd (k : ℕ) :
+    getDegree (cs.wordProd (alternatingWord 0 1 (2 * k + 1))) = ⟨k, k + 1⟩ := by
+  rw [cs.prod_alternatingWord_eq_mul_pow 0 1 (2 * k + 1)]
+  simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr, sub_zero,
+    r_pow, one_mul, sr_mul_r]
+  have h_div : (2 * k + 1) / 2 = k := by omega
+  rw [h_div]
+  have h1 : 0 ≤ 1 + (k : ℤ) := by linarith
+  have h2 : 0 ≠  1 + (k : ℤ) := by norm_cast; linarith
+  simp [getDegree, ge_iff_le, h1, ↓reduceIte, h2.symm, Degree.mk.injEq]
+  omega
+
+lemma getDegree_alternating_1_odd (k : ℕ) :
+    getDegree (cs.wordProd (alternatingWord 1 0 (2 * k + 1))) = ⟨k+1, k⟩ := by
+  rw [cs.prod_alternatingWord_eq_mul_pow 1 0 (2 * k + 1)]
+  simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr, zero_sub,
+    r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
+  have h_div : (2 * k + 1) / 2 = k := by omega
+  rw [h_div]
+  simp only [getDegree, ge_iff_le]
+  split_ifs with h h1
+  · simp only [Degree.mk.injEq, Nat.right_eq_add]
+    have : k = 0 := by omega
+    omega
+  · exfalso
+    have : k = 0 := by omega
+    aesop
+  · simp only [Degree.mk.injEq, Nat.add_right_cancel_iff, and_self]
+    omega
+
+
 def s_α (α : Root) : D∞ :=
   if α.a > α.b then
     cs.wordProd (Λ  1 0 (α.a + α.b))

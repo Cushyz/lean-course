@@ -464,8 +464,50 @@ theorem length_eq (g : D∞) : ℓ g = (reducedWord g).length := by
   rw [h_len_eq] at h_le
   exact le_antisymm h_le (cs_length_ge_explicit g) ▸ h_len_eq.symm
 
+lemma alternating_length (h : i ≠ j) :
+    (reducedWord (cs.wordProd (alternatingWord i j n))).length = n := by
+  rw [alternating_reducedWord i j n h]
+  simp only [length_alternatingWord]
+
+lemma length_eq' (h : i ≠ j) : cs.length (cs.wordProd (alternatingWord i j n)) = n :=
+  length_eq (cs.wordProd (CoxeterSystem.alternatingWord i j n)) ▸
+    alternating_length h
+
 theorem length_sr' (k : ℤ) : ℓ (sr k) = (2 * k - 1).natAbs := by
-  sorry
+  rw [length_eq]
+  dsimp [reducedWord]
+  split_ifs with hk
+  · rw [length_alternatingWord]
+    have habs : (2 * k - 1).natAbs = 2 * k.natAbs - 1 := by omega
+    omega
+  · rw [length_alternatingWord]
+    have habs : (2 * k - 1).natAbs = 2 * k.natAbs + 1 := by omega
+    omega
+
+lemma alternatingWord_head_odd (i j : Fin 2) (k : ℕ) :
+    (alternatingWord i j (2 * k + 1)).head? = some j := by
+  rw [show 2 * k + 1 = (2 * k) + 1 by omega, alternatingWord_succ']
+  simp
+
+lemma alternatingWord_head_even_pos (i j : Fin 2) (k : ℕ) (hk : k > 0) :
+    (alternatingWord i j (2 * k)).head? = some i := by
+  cases k with
+  | zero => omega
+  | succ k =>
+    rw [show 2 * (k + 1) = (2 * k + 1) + 1 by omega, alternatingWord_succ']
+    simp
+
+@[simp] lemma alternatingWord_getLast_succ (i j : Fin 2) (n : ℕ) :
+    (alternatingWord i j (n + 1)).getLast? = some j := by
+  rw [alternatingWord_succ]
+  simp
+
+lemma alternatingWord_getLast_pos (i j : Fin 2) (n : ℕ) (hn : n > 0) :
+    (alternatingWord i j n).getLast? = some j := by
+  cases n with
+  | zero => omega
+  | succ m =>
+    exact alternatingWord_getLast_succ i j m
 
 theorem D_induction {P : D∞ → Prop}
     (h1 : P 1)
@@ -528,3 +570,7 @@ lemma n_mod_2_induction {P : ℕ → Prop}
   · rw [← two_mul]
     exact h0 k
   · exact h1 k
+
+lemma length_wordprod {s s' : Fin 2} (n : ℕ) (h_ne : s ≠ s') :
+    cs.length (cs.wordProd (alternatingWord s s' n)) = n := by
+  rw [length_eq, alternating_length h_ne]
