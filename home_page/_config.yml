@@ -21,11 +21,11 @@
 title: Dihedral
 #email: your-email@example.com
 description: by csz|hyh|wjq|xyx
-baseurl: "/lean-course" # the subpath of your site, e.g. /blog
+baseurl: "/A-Lean-Formalization-of-Curve-Neighborhoods-for-the-Infinite-Dihedral-Group" # the subpath of your site, e.g. /blog
 url: "https://hilda-hyh.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username:
 github_username: hilda-hyh
-repository: Hilda-Hyh/lean-course
+repository: Hilda-Hyh/A-Lean-Formalization-of-Curve-Neighborhoods-for-the-Infinite-Dihedral-Group
 
 # Build settings
 remote_theme: pages-themes/cayman@v0.2.0 
