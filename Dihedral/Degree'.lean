@@ -1,5 +1,5 @@
 import Mathlib
-import Dihedral.alternatingword
+import Dihedral.Basic
 
 open Nat CoxeterSystem DihedralGroup
 
@@ -39,7 +39,7 @@ def Di_induction_on {P : D∞ → Prop} (g : D∞)
   · apply r
   · apply sr
 
-theorem lemma_2_1_4 (u v : D∞) (huv : ℓ u ≤ ℓ v) :
+theorem length_mul_eq_add_or_sub (u v : D∞) (huv : ℓ u ≤ ℓ v) :
     ℓ (u * v) = ℓ u + ℓ v ∨ ℓ (u * v) = ℓ v - ℓ u := by
   cases u with
   | r u =>
@@ -431,7 +431,7 @@ lemma lt_of_succ_length (u v : Vertex) (h : ℓ v = ℓ u + 1) : u < v := by
     exact lt_irrefl _ h_len_lt
   use (0 + α.toDegree)
 
-theorem lemma_2_3 (u v : Vertex) :
+theorem lt_iff_length_lt (u v : Vertex) :
     u < v ↔ ℓ u < ℓ v := by
   constructor
   · intro h

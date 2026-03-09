@@ -87,7 +87,7 @@ lemma h_chain {u : Vertex} (h : u ≠ 1) : IsChain (· ≤ ·) (Ad u d) := by
   rcases hx with ⟨hv, hv'⟩
   rcases hy with ⟨hw, hw'⟩
   rcases d with ⟨a,b⟩
-  simp_all only [ne_eq, Degreele_le_def, lemma_2_3, lt_or_lt_iff_ne]
+  simp_all only [ne_eq, Degreele_le_def, lt_iff_length_lt, lt_or_lt_iff_ne]
   cases u with
   | sr nu =>
     rcases x with ⟨nx⟩ | ⟨nx⟩ <;>
@@ -96,8 +96,8 @@ lemma h_chain {u : Vertex} (h : u ≠ 1) : IsChain (· ≤ ·) (Ad u d) := by
     · simp_all; grind
     · simp_all; grind
     · simp only [sr_mul_sr] at hv hw
-      rw [length_sr', length_sr', length_r] at hv hw
-      rw [length_sr', length_sr']
+      rw [length_sr_abs, length_sr_abs, length_r] at hv hw
+      rw [length_sr_abs, length_sr_abs]
       simp_all only [getDegree_sr, sr.injEq]
       change ℤ at *
       have : nx < ny ∨ ny < nx := Int.ne_iff_lt_or_gt.mp hxy
@@ -115,13 +115,13 @@ lemma h_chain {u : Vertex} (h : u ≠ 1) : IsChain (· ≤ ·) (Ad u d) := by
     · simp_all; grind
     · simp_all; grind
     · simp only [r_mul_sr] at hv hw
-      rw [length_sr', length_sr', length_r] at hv hw
-      rw [length_sr', length_sr']
+      rw [length_sr_abs, length_sr_abs, length_r] at hv hw
+      rw [length_sr_abs, length_sr_abs]
       simp_all only [ne_eq, getDegree_sr, sr.injEq]
       change ℤ at *
       grind
 
-theorem lemma_3_1_1 (u : Vertex) (d : Degree) :
+theorem exists_unique_max_ad_ne_one (u : Vertex) (d : Degree) :
     (u ≠ 1) → ∃! v, IsMaximalIn v (Ad u d) := by
   intro h_cond
   obtain ⟨m, hm⟩ := Set.Finite.exists_maximalFor (fun x => x) (Ad u d) h_finite h_nonempty
@@ -146,16 +146,16 @@ theorem lemma_3_1_1 (u : Vertex) (d : Degree) :
     | inr h_le =>
       apply hy_max m hm.1 h_le
 
-lemma lemma_3_hl (d : Degree) : Ad 1 d = {x : Vertex | φ x ≤ d} := by
+lemma ad_one_eq_degree_le (d : Degree) : Ad 1 d = {x : Vertex | φ x ≤ d} := by
   simp [Ad, one_mul]
 
-theorem lemma_3_1_2 (d : Degree) :
+theorem exists_unique_max_ad_one_neq (d : Degree) :
      (d.a ≠ d.b) → ∃! v, IsMaximalIn v (Ad 1 d) := by
       intro ne
       rcases d with ⟨a, b⟩
       dsimp [IsMaximalIn]
       rw [Nat.ne_iff_lt_or_gt] at ne
-      simp only [lemma_3_hl]
+      simp only [ad_one_eq_degree_le]
       rcases ne with h | h
       · -- a < b. v = sr (-(b)). a = b or a < b.
         -- But root ⟨b+1, b⟩ => s_alpha = sr (-b)
@@ -192,14 +192,14 @@ theorem lemma_3_1_2 (d : Degree) :
         · intro v h1 h2 h3
           let a' := (a : ℤ)
           have h3 : ( ℓ (sr (1 + a)) < ℓ v) ∨ (sr (1 + a : ℕ) = v) := by
-            simp only[← lemma_2_3] ; exact h3
+            simp only[← lt_iff_length_lt] ; exact h3
           cases v with
           | r n =>
-            rw [length_sr', length_r] at h3
+            rw [length_sr_abs, length_r] at h3
             simp_all [getDegree_r]
             omega
           | sr n =>
-            repeat rw [length_sr'] at h3
+            repeat rw [length_sr_abs] at h3
             simp_all only [getDegree_sr, cast_add, cast_one, sr.injEq]
             by_contra p
             simp [p] at h3
@@ -215,8 +215,8 @@ theorem lemma_3_1_2 (d : Degree) :
             refine h3 h (le_of_eq_or_lt ?_)
             simp only [cast_add, cast_one, reduceCtorEq, false_or]
             have h: ℓ (r n) < ℓ (sr ((a:ℕ)+1:ℤ)) := by
-              rw [length_r,length_sr']; omega
-            exact (lemma_2_3 _ _).mpr h
+              rw [length_r,length_sr_abs]; omega
+            exact (lt_iff_length_lt _ _).mpr h
           | sr n =>
             specialize h3 (sr ((a:ℕ)+1:ℤ))
             simp_all only [getDegree_sr, add_sub_cancel_right, Int.natAbs_natCast, le_refl,
@@ -225,7 +225,7 @@ theorem lemma_3_1_2 (d : Degree) :
             apply h3
             · omega
             · apply le_of_eq_or_lt
-              rw [lemma_2_3, length_sr',length_sr']
+              rw [lt_iff_length_lt, length_sr_abs,length_sr_abs]
               grind
       · -- a > b. v = sr (-b).
         use s_α ⟨b + 1, b, Or.inl rfl⟩
@@ -241,14 +241,14 @@ theorem lemma_3_1_2 (d : Degree) :
         split_ands
         · intro v h1 h2 h3
           have h3 : ( ℓ (sr (-(b:ℤ))) < ℓ v) ∨ (sr (-(b:ℤ)) = v) := by
-            rw [← lemma_2_3] ; exact h3
+            rw [← lt_iff_length_lt] ; exact h3
           cases v with
           | r n =>
-            rw [length_sr', length_r] at h3
+            rw [length_sr_abs, length_r] at h3
             simp_all [getDegree_r]
             omega
           | sr n =>
-            repeat rw [length_sr'] at h3
+            repeat rw [length_sr_abs] at h3
             simp_all only [getDegree_sr, sr.injEq]
             by_contra p
             simp [p] at h3
@@ -264,8 +264,8 @@ theorem lemma_3_1_2 (d : Degree) :
             refine h3 (by omega) (le_of_eq_or_lt ?_)
             simp only [reduceCtorEq, false_or]
             have h: ℓ (r n) < ℓ (sr (-b:ℤ)) := by
-              rw [length_r,length_sr']; omega
-            exact (lemma_2_3 _ _).mpr h
+              rw [length_r,length_sr_abs]; omega
+            exact (lt_iff_length_lt _ _).mpr h
           | sr n =>
             specialize h3 (sr (-b:ℤ))
             simp_all only [getDegree_sr, Int.natAbs_neg, Int.natAbs_natCast, le_refl, sr.injEq,
@@ -273,13 +273,13 @@ theorem lemma_3_1_2 (d : Degree) :
             apply h3
             · omega
             · apply le_of_eq_or_lt
-              rw [lemma_2_3, length_sr',length_sr']
+              rw [lt_iff_length_lt, length_sr_abs,length_sr_abs]
               grind
 
-theorem lemma_3_1_3 (a : ℕ) (v : Vertex) :
+theorem max_ad_one_diag_iff_r_or_neg_r (a : ℕ) (v : Vertex) :
     let S := Ad 1 (Degree.mk a a)
     IsMaximalIn v S ↔ v = r (a : ℤ) ∨ v = r (-(a : ℤ)) := by
-  simp only [lemma_3_hl, Degreele_le_def]
+  simp only [ad_one_eq_degree_le, Degreele_le_def]
   have h_len_le : ∀ x, getDegree x ≤ Degree.mk a a → ℓ x ≤ 2 * a := by
     intro x h_deg
     rcases x with (_ | k)
@@ -309,7 +309,7 @@ theorem lemma_3_1_3 (a : ℕ) (v : Vertex) :
         let w := r (a : ZMod 0)
         have h_w_in : w ∈ {x | getDegree x ≤ Degree.mk a a} := h_mem_pos
         have h_len_w : ℓ w = 2 * a := by simp [w, length_r]; omega
-        have h_lt : v < w := (lemma_2_3 v w).mpr (by rw [h_len_w]; exact h_len_lt)
+        have h_lt : v < w := (lt_iff_length_lt v w).mpr (by rw [h_len_w]; exact h_len_lt)
         have h_le : v ≤ w := le_of_lt h_lt
         have h_eq := h_max w h_w_in h_le
         rw [h_eq] at h_len_lt
@@ -320,7 +320,7 @@ theorem lemma_3_1_3 (a : ℕ) (v : Vertex) :
       · exact h_in
       · intro v' h_in' h_le
         rcases h_le with h_lt | h_eq
-        · have h_len_lt : ℓ v < ℓ v' := (lemma_2_3 v v').mp h_lt
+        · have h_len_lt : ℓ v < ℓ v' := (lt_iff_length_lt v v').mp h_lt
           rw [h_len_eq] at h_len_lt
           have h_bound := h_len_le v' h_in'
           linarith
@@ -457,7 +457,7 @@ lemma trivial_chain (u : Vertex) : HasChain 1 u (φ u) := by
         simpa [k'] using trivial_chain_r_neg k' hk_neg
 
 -- 结论 A
-theorem curve_neighborhood_eq_max_Ad_identity (d : Degree) :
+theorem curve_nbhd_one_eq_max_ad_one (d : Degree) :
     CurveNeighborhood 1 d = { v | IsMaximalIn v (Ad 1 d) } := by
   rw [CurveNeighborhood]
   congr
@@ -495,10 +495,10 @@ theorem curve_neighborhood_eq_max_Ad_identity (d : Degree) :
         exact le_trans h_phi_le_d' h_d'_le_d
       apply h_in_Ad.2 x h_x_in_Ad h_v_lt_x
 
-theorem theorem_3_3_eq (d : Degree) (p : d.a = d.b) :
+theorem curve_nbhd_one_diag (d : Degree) (p : d.a = d.b) :
   CurveNeighborhood 1 d = { s0s1_pow d.a, s1s0_pow d.a } := by
-  rw [curve_neighborhood_eq_max_Ad_identity]
-  have h := lemma_3_1_3 d.a
+  rw [curve_nbhd_one_eq_max_ad_one]
+  have h := max_ad_one_diag_iff_r_or_neg_r d.a
   ext v
   specialize h v
   simp_all only [Set.mem_setOf_eq, Set.mem_insert_iff, Set.mem_singleton_iff]
@@ -521,23 +521,23 @@ lemma s_alpha_d_maximal (d : Degree) (p : d.a ≠ d.b) :
         zero_sub, r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
       have hgt : d.b + 1 > d.b := by omega
       simp [hgt]
-    rw [hs, lemma_3_hl]
+    rw [hs, ad_one_eq_degree_le]
     refine ⟨?_, ?_⟩
     · simp [getDegree_sr]
       omega
     · intro v hv hv_le
       have hv_le' : sr (-(d.b : ℤ)) ≤ v := by simpa [hs] using hv_le
       have hv_cmp : (ℓ (sr (-(d.b : ℤ))) < ℓ v) ∨ (sr (-(d.b : ℤ)) = v) := by
-        rw [← lemma_2_3]
+        rw [← lt_iff_length_lt]
         exact hv_le'
       cases v with
       | r n =>
-        rw [length_sr', length_r] at hv_cmp
+        rw [length_sr_abs, length_r] at hv_cmp
         simp_all [getDegree_r]
         omega
       | sr n =>
         rcases hv_cmp with hlt | heq
-        · rw [length_sr', length_sr'] at hlt
+        · rw [length_sr_abs, length_sr_abs] at hlt
           simp_all [getDegree_sr]
           omega
         · simpa using heq
@@ -552,7 +552,7 @@ lemma s_alpha_d_maximal (d : Degree) (p : d.a ≠ d.b) :
         sub_zero, r_pow, one_mul, sr_mul_r]
       have hnot : ¬ d.a > d.a + 1 := by omega
       simp [hnot, add_comm]
-    rw [hs, lemma_3_hl]
+    rw [hs, ad_one_eq_degree_le]
     refine ⟨?_, ?_⟩
     · simp [getDegree_sr]
       omega
@@ -561,25 +561,25 @@ lemma s_alpha_d_maximal (d : Degree) (p : d.a ≠ d.b) :
         simpa [hs, add_comm] using hv_le
       have hv_cmp : (ℓ (sr (((d.a + 1 : ℕ) : ℤ))) < ℓ v) ∨
           (sr (((d.a + 1 : ℕ) : ℤ)) = v) := by
-        rw [← lemma_2_3]
+        rw [← lt_iff_length_lt]
         exact hv_le'
       cases v with
       | r n =>
-        rw [length_sr', length_r] at hv_cmp
+        rw [length_sr_abs, length_r] at hv_cmp
         simp_all [getDegree_r]
         omega
       | sr n =>
         rcases hv_cmp with hlt | heq
-        · rw [length_sr', length_sr'] at hlt
+        · rw [length_sr_abs, length_sr_abs] at hlt
           simp_all [getDegree_sr]
           omega
         · simpa using heq
 
-theorem theorem_3_3_neq (d : Degree) (p : d.a ≠ d.b) :
+theorem curve_nbhd_one_offdiag (d : Degree) (p : d.a ≠ d.b) :
     CurveNeighborhood 1 d = { s_alpha_d d } := by
-    rw [curve_neighborhood_eq_max_Ad_identity]
+    rw [curve_nbhd_one_eq_max_ad_one]
     ext v
-    have h := lemma_3_1_2 _ p
+    have h := exists_unique_max_ad_one_neq _ p
     constructor
     · simp only [Set.mem_setOf_eq, Set.mem_singleton_iff]
       intro w
@@ -590,15 +590,15 @@ theorem theorem_3_3_neq (d : Degree) (p : d.a ≠ d.b) :
       simp at *
       simp [w, (s_alpha_d_maximal _ p)]
 
-theorem theorem_3_3 (d : Degree) :
+theorem curve_nbhd_one (d : Degree) :
     CurveNeighborhood 1 d =
       if d.a = d.b then
         { s0s1_pow d.a, s1s0_pow d.a }
       else
         { s_alpha_d d } := by
         split_ifs with h
-        · exact theorem_3_3_eq d h
-        · exact theorem_3_3_neq d h
+        · exact curve_nbhd_one_diag d h
+        · exact curve_nbhd_one_offdiag d h
 
 def ends_in_s0 (u : D∞) : Prop := (reducedWord u).getLast? = some 0
 def starts_with_s1 (v : D∞) : Prop := (reducedWord v).head? = some 1
@@ -852,7 +852,7 @@ lemma not_length_add_of_ends_s0_mul_sr_nonpos (u : Vertex) (k : ℤ)
     have h_abs : (k - m').natAbs ≤ k.natAbs + m'.natAbs := Int.natAbs_sub_le k m'
     omega
 
-theorem theorem_3_2_case_b_gt_a (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
+theorem max_ad_b_gt_a_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     (h : d.b > d.a) : IsMaximalIn (s_alpha_d d) (Ad u d) := by
   set w := s_alpha_d d with hw_def
   have hna : ¬(d.a > d.b) := not_lt.mpr (le_of_lt h)
@@ -907,13 +907,13 @@ theorem theorem_3_2_case_b_gt_a (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
   · exact ⟨h_len, h_deg⟩
   · intro v hv hv_le
     rcases hv_le with hv_lt | hv_eq
-    · have hlen_lt : ℓ w < ℓ v := (lemma_2_3 w v).mp hv_lt
+    · have hlen_lt : ℓ w < ℓ v := (lt_iff_length_lt w v).mp hv_lt
       have hlen_bound := hv_len_bound v hv
       rw [hw_len] at hlen_lt
       omega
     · exact hv_eq
 
-theorem theorem_3_2_case_a_gt_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
+theorem max_ad_a_gt_b_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     (h : d.a > d.b) : IsMaximalIn (s0 * s_alpha_d d) (Ad u d) := by
   set w := s0 * s_alpha_d d with hw_def
   have h_root : root_from_degree d = ⟨d.b + 1, d.b, Or.inl rfl⟩ := by
@@ -971,7 +971,7 @@ theorem theorem_3_2_case_a_gt_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     · exact ⟨h_len, h_deg⟩
     · intro v hv hv_le
       rcases hv_le with hv_lt | hv_eq
-      · have hlen_lt : ℓ w < ℓ v := (lemma_2_3 w v).mp hv_lt
+      · have hlen_lt : ℓ w < ℓ v := (lt_iff_length_lt w v).mp hv_lt
         have hlen_bound := hv_len_bound v hv
         rw [hw_len] at hlen_lt
         omega
@@ -1011,7 +1011,7 @@ theorem theorem_3_2_case_a_gt_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
       symm
       exact hv_one v hv
 
-theorem theorem_3_2_case_a_eq_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
+theorem max_ad_a_eq_b_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     (h : d.a = d.b) : IsMaximalIn (s1 * s_alpha_d (d.sub {a := 0, b := 1})) (Ad u d) := by
   set a := d.a with ha_def
   set w := s1 * s_alpha_d (d.sub {a := 0, b := 1}) with hw_def
@@ -1086,7 +1086,7 @@ theorem theorem_3_2_case_a_eq_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     · exact ⟨h_len, h_deg⟩
     · intro v hv hv_le
       rcases hv_le with hv_lt | hv_eq
-      · have hlen_lt : ℓ w < ℓ v := (lemma_2_3 w v).mp hv_lt
+      · have hlen_lt : ℓ w < ℓ v := (lt_iff_length_lt w v).mp hv_lt
         have hlen_bound := hv_len_bound v hv
         rw [hw_len] at hlen_lt
         omega
@@ -1131,17 +1131,17 @@ theorem theorem_3_2_case_a_eq_b (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
       symm
       exact hv_must_be_one v hv
 
-theorem theorem_3_2_eq_4 (u : Vertex) (d : Degree) (hu : ends_in_s0 u) :
+theorem max_ad_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u) :
   IsMaximalIn
     (if d.a = d.b then s1 * s_alpha_d (d.sub {a := 0, b := 1})
      else if d.b > d.a then s_alpha_d d
      else s0 * s_alpha_d d)
     (Ad u d) := by
   split_ifs with h1 h2
-  · exact theorem_3_2_case_a_eq_b u d hu h1
-  · exact theorem_3_2_case_b_gt_a u d hu h2
+  · exact max_ad_a_eq_b_ends_s0 u d hu h1
+  · exact max_ad_b_gt_a_ends_s0 u d hu h2
   · have h3 : d.a > d.b := Nat.lt_of_le_of_ne (not_lt.mp h2) (Ne.symm h1)
-    exact theorem_3_2_case_a_gt_b u d hu h3
+    exact max_ad_a_gt_b_ends_s0 u d hu h3
 
 
 lemma edge_left_mul (g u v : Vertex) (α : Root) (h : IsEdge u v α) :
@@ -1162,13 +1162,13 @@ lemma CurveNeighborhood_max (h : v ∈ CurveNeighborhood u d) :
   rw [CurveNeighborhood] at h
   intro w hw
   by_contra h_lt
-  rw [not_le, ← lemma_2_3] at h_lt
+  rw [not_le, ← lt_iff_length_lt] at h_lt
   have h_le : v ≤ w := le_of_lt h_lt
   have h_eq := h.2 w hw h_le
   rw [h_eq] at h_lt
   exact (lt_self_iff_false w).mp h_lt
 
-theorem lemma_3_4_a_1 (u : Vertex) (d : Degree) (z : Vertex) (v : Vertex)
+theorem len_mul_ad_le_curve_nbhd_max (u : Vertex) (d : Degree) (z : Vertex) (v : Vertex)
     (hz : z ∈ Ad 1 d) (hv : v ∈ CurveNeighborhood u d) :
     ℓ (u * z) ≤ ℓ v := by
   have h_deg_z : φ z ≤ d := by
@@ -1184,7 +1184,7 @@ theorem lemma_3_4_a_1 (u : Vertex) (d : Degree) (z : Vertex) (v : Vertex)
     use getDegree z
   exact CurveNeighborhood_max hv (u * z) h_uz_in_Re
 
-theorem lemma_3_4_a_2 (u : Vertex) (d : Degree) (v : Vertex)
+theorem deg_inv_mul_le_curve_nbhd (u : Vertex) (d : Degree) (v : Vertex)
      (hv : v ∈ CurveNeighborhood u d) :
    φ (u⁻¹ * v) ≤ d := by
   have h_v_reachable : v ∈ ReachableSet u d := by
@@ -1197,7 +1197,7 @@ theorem lemma_3_4_a_2 (u : Vertex) (d : Degree) (v : Vertex)
   simp only [inv_one, one_mul, Degreele_le_def] at h_phi_le_dv
   exact le_trans h_phi_le_dv h_dv_le_d
 
-theorem lemma_3_4_b (u : Vertex) (d : Degree) (z : Vertex) (v : Vertex)
+theorem inv_mul_len_le_curve_nbhd_one_max (u : Vertex) (d : Degree) (z : Vertex) (v : Vertex)
     (hz : z ∈ CurveNeighborhood 1 d) (hv : v ∈ CurveNeighborhood u d) :
     ℓ (u⁻¹ * v) ≤ ℓ z := by
   rw [CurveNeighborhood] at hv
@@ -1414,7 +1414,7 @@ lemma length_add_of_not_ends_s0_not_starts_s1 (u v : Vertex)
       simp only [sr_mul_sr, length_sr, length_r]
       split_ifs <;> omega
 
-theorem lemma_3_5 (u v : Vertex) (d : Degree) (hv : v ∈ CurveNeighborhood u d) :
+theorem inv_mul_mem_ad_curve_nbhd (u v : Vertex) (d : Degree) (hv : v ∈ CurveNeighborhood u d) :
     (u⁻¹ * v) ∈ Ad u d := by
   constructor
   · by_cases hu_1 : u = 1
@@ -1436,20 +1436,20 @@ theorem lemma_3_5 (u v : Vertex) (d : Degree) (hv : v ∈ CurveNeighborhood u d)
       have h_inv_le : ℓ u⁻¹ ≤ ℓ v := by
         rw [h_inv_len]
         exact h_u_le_v
-      have h_dichotomy := lemma_2_1_4 u⁻¹ v h_inv_le
+      have h_dichotomy := length_mul_eq_add_or_sub u⁻¹ v h_inv_le
       rcases h_dichotomy with (h_add | h_sub)
       · rw [h_inv_len] at h_add
         have h_Gamma_nonempty : (CurveNeighborhood 1 d).Nonempty := by
-          rw [theorem_3_3]
+          rw [curve_nbhd_one]
           split_ifs with h
           · exact ⟨s0s1_pow d.a, Set.mem_insert _ _⟩
           · exact ⟨s_alpha_d d, Set.mem_singleton _⟩
         obtain ⟨z, hz⟩ := h_Gamma_nonempty
         have hz_Ad : z ∈ Ad 1 d := by
-          rw [curve_neighborhood_eq_max_Ad_identity] at hz
+          rw [curve_nbhd_one_eq_max_ad_one] at hz
           exact hz.1
-        have h_uz_le_v : ℓ (u * z) ≤ ℓ v := lemma_3_4_a_1 u d z v hz_Ad hv
-        have h_w_le_z : ℓ w ≤ ℓ z := lemma_3_4_b u d z v hz hv
+        have h_uz_le_v : ℓ (u * z) ≤ ℓ v := len_mul_ad_le_curve_nbhd_max u d z v hz_Ad hv
+        have h_w_le_z : ℓ w ≤ ℓ z := inv_mul_len_le_curve_nbhd_one_max u d z v hz hv
         have h_uv_le_z : ℓ u + ℓ v ≤ ℓ z := by
           rw [← h_add]
           exact h_w_le_z
@@ -1502,7 +1502,7 @@ theorem lemma_3_5 (u v : Vertex) (d : Degree) (hv : v ∈ CurveNeighborhood u d)
           simp only [Ad, one_mul, length_one, zero_add, true_and, Set.mem_setOf_eq]
           exact h_z'_deg
         obtain ⟨z', hz'_Ad, hz'_len, hz'_reduced⟩ := h_exists_z'
-        have h_uz'_le_v : ℓ (u * z') ≤ ℓ v := lemma_3_4_a_1 u d z' v hz'_Ad hv
+        have h_uz'_le_v : ℓ (u * z') ≤ ℓ v := len_mul_ad_le_curve_nbhd_max u d z' v hz'_Ad hv
         have h_bound1 : ℓ u + ℓ z - 1 ≤ ℓ v := by
           calc
             ℓ u + ℓ z - 1 = ℓ u + (ℓ z - 1) := by omega
@@ -1517,7 +1517,7 @@ theorem lemma_3_5 (u v : Vertex) (d : Degree) (hv : v ∈ CurveNeighborhood u d)
       · rw [h_inv_len, ← hw_def] at h_sub
         have : ℓ v = ℓ u + ℓ w := (Nat.sub_eq_iff_eq_add' h_u_le_v).mp (id (Eq.symm h_sub))
         contradiction
-  · exact lemma_3_4_a_2 u d v hv
+  · exact deg_inv_mul_le_curve_nbhd u d v hv
 
 lemma Ad_u_in_Ad_one (u : Vertex) (d : Degree) (v : Vertex) (h : v ∈ Ad u d) : v ∈ Ad 1 d := by
   rw [Ad] at *
@@ -1557,7 +1557,7 @@ lemma reachable_of_Ad (u : Vertex) (d : Degree) (w : Vertex) (h : w ∈ Ad u d) 
 lemma mul_le_mul_left_of_length_add (u : Vertex) (x y : Vertex)
     (hx : ℓ (u * x) = ℓ u + ℓ x) (hy : ℓ (u * y) = ℓ u + ℓ y) :
     x ≤ y ↔ u * x ≤ u * y := by
-  rw [le_iff_lt_or_eq, le_iff_lt_or_eq, lemma_2_3, lemma_2_3, hx, hy]
+  rw [le_iff_lt_or_eq, le_iff_lt_or_eq, lt_iff_length_lt, lt_iff_length_lt, hx, hy]
   constructor
   · rintro (h | rfl)
     · left; omega
@@ -1585,7 +1585,7 @@ lemma exists_max_ge_in_Reachable (u : Vertex) (d : Degree) (v : Vertex)
   have h_bound_finite : S_bound.Finite := by
     let pre_image := { y : Vertex | φ y ≤ d }
     have h_pre_finite : pre_image.Finite := by
-      have heq : pre_image = Ad 1 d := (lemma_3_hl d).symm
+      have heq : pre_image = Ad 1 d := (ad_one_eq_degree_le d).symm
       rw [heq]
       exact h_finite
     have : S_bound = (fun y => u * y) '' pre_image := by
@@ -1621,18 +1621,18 @@ lemma exists_max_ge_in_Reachable (u : Vertex) (d : Degree) (v : Vertex)
       exact le_antisymm hm_le_v' this
   · exact h_v_le_m
 
-theorem main_theorem (u : Vertex) (d : Degree) :
+theorem curve_nbhd_eq_mul_max_ad (u : Vertex) (d : Degree) :
     CurveNeighborhood u d = { v | ∃ w, IsMaximalIn w (Ad u d) ∧ v = u * w } := by
   apply Set.ext
   intro v
   constructor
   · intro hv
-    have h_z_in_Ad : (u⁻¹ * v) ∈ Ad u d := lemma_3_5 u v d hv
+    have h_z_in_Ad : (u⁻¹ * v) ∈ Ad u d := inv_mul_mem_ad_curve_nbhd u v d hv
     let z := u⁻¹ * v
     have h_v_eq : v = u * z := by simp [z]
     obtain ⟨w, hw_max, h_z_le_w⟩ := exists_max_in_Ad u d z h_z_in_Ad
     have hw_in_Ad1 : w ∈ Ad 1 d := Ad_u_in_Ad_one u d w hw_max.1
-    have h_len_uw_le_v := lemma_3_4_a_1 u d w v hw_in_Ad1 hv
+    have h_len_uw_le_v := len_mul_ad_le_curve_nbhd_max u d w v hw_in_Ad1 hv
     have h_len_v : ℓ v = ℓ u + ℓ z := by
       rw [h_v_eq]
       exact h_z_in_Ad.1
@@ -1643,7 +1643,7 @@ theorem main_theorem (u : Vertex) (d : Degree) :
       by_contra h_neq
       have h_lt : z < w := lt_of_le_of_ne h_z_le_w h_neq
       have h_len_lt : ℓ z < ℓ w := by
-        rw [← lemma_2_3]
+        rw [← lt_iff_length_lt]
         exact h_lt
       linarith [h_len_lt, h_len_w_le_z]
     use w
@@ -1657,7 +1657,7 @@ theorem main_theorem (u : Vertex) (d : Degree) :
     intro v' h_reach_v' h_le_v_v'
     obtain ⟨m, hm_max, h_v'_le_m⟩ := exists_max_ge_in_Reachable u d v' h_reach_v'
     have h_m_in_gamma : m ∈ CurveNeighborhood u d := hm_max
-    have h_z'_in_Ad : (u⁻¹ * m) ∈ Ad u d := lemma_3_5 u m d h_m_in_gamma
+    have h_z'_in_Ad : (u⁻¹ * m) ∈ Ad u d := inv_mul_mem_ad_curve_nbhd u m d h_m_in_gamma
     let w' := u⁻¹ * m
     have h_m_eq : m = u * w' := by simp [w']
     have h_uw_le_uw' : u * w ≤ u * w' :=
@@ -1675,17 +1675,17 @@ theorem main_theorem (u : Vertex) (d : Degree) :
     rw [h_v'_eq_v]
 
 example : CurveNeighborhood 1 {a := 2, b := 2} = { s0s1_pow 2, s1s0_pow 2 } := by
-  rw [theorem_3_3_eq {a := 2, b := 2} rfl]
+  rw [curve_nbhd_one_diag {a := 2, b := 2} rfl]
 
 example : CurveNeighborhood s0 {a := 2, b := 3} = {s0 * s_alpha_d {a := 2, b := 3}} := by
-  rw [main_theorem s0 {a := 2, b := 3}]
+  rw [curve_nbhd_eq_mul_max_ad s0 {a := 2, b := 3}]
   have h_ends : ends_in_s0 s0 := by
     rw [s0, ends_in_s0_sr]
   have h_u_ne_1 : s0 ≠ 1 := by
     decide
-  have h_max := theorem_3_2_eq_4 s0 {a := 2, b := 3} h_ends
+  have h_max := max_ad_ends_s0 s0 {a := 2, b := 3} h_ends
   rw [if_neg (by norm_num), if_pos (by norm_num)] at h_max
-  have h_unique := lemma_3_1_1 s0 {a := 2, b := 3} h_u_ne_1
+  have h_unique := exists_unique_max_ad_ne_one s0 {a := 2, b := 3} h_u_ne_1
   ext v
   simp only [Set.mem_setOf_eq, Set.mem_singleton_iff]
   constructor

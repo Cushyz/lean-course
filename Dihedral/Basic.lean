@@ -28,7 +28,7 @@ lemma sri_in_D : ∀ i : ZMod 0, sr i ∈ (Subgroup.closure ({sr (0 : ZMod 0),
   rw [← this]
   exact Subgroup.mul_mem _ (Subgroup.subset_closure (Set.mem_insert _ _)) hk
 
-theorem D_generated_by_sr0_sr1 :
+theorem gen_by_sr0_sr1 :
   (Subgroup.closure ({sr (0 : ZMod 0), sr (1 : ZMod 0)} : Set (DihedralGroup 0))) = ⊤ := by
   apply eq_top_iff.mpr
   intro g
@@ -473,7 +473,7 @@ lemma length_eq' (h : i ≠ j) : cs.length (cs.wordProd (alternatingWord i j n))
   length_eq (cs.wordProd (CoxeterSystem.alternatingWord i j n)) ▸
     alternating_length h
 
-theorem length_sr' (k : ℤ) : ℓ (sr k) = (2 * k - 1).natAbs := by
+theorem length_sr_abs (k : ℤ) : ℓ (sr k) = (2 * k - 1).natAbs := by
   rw [length_eq]
   dsimp [reducedWord]
   split_ifs with hk
@@ -509,7 +509,7 @@ lemma alternatingWord_getLast_pos (i j : Fin 2) (n : ℕ) (hn : n > 0) :
   | succ m =>
     exact alternatingWord_getLast_succ i j m
 
-theorem D_induction {P : D∞ → Prop}
+theorem dihedral_induction {P : D∞ → Prop}
     (h1 : P 1)
     (h_s0 : ∀ g, P g → P (g * s0))
     (h_s1 : ∀ g, P g → P (g * s1)) :
@@ -538,7 +538,7 @@ theorem induction_on_alternating {P : D∞ → Prop}
     (h1 : P 1)
     (h_step : ∀ (g : D∞) (s : Fin 2), P g → P (g * cs.simple s)) :
     ∀ g, P g := by
-  apply D_induction h1
+  apply dihedral_induction h1
   · intro g hg; exact h_step g 0 hg
   · intro g hg; exact h_step g 1 hg
 

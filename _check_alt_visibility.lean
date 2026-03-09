@@ -1,0 +1,4 @@
+import Dihedral.alternatingword
+#check alternatingWord_getLast_pos
+#check alternatingWord_head_odd
+#check alternatingWord_head_even_pos
