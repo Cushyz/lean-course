@@ -1,1 +1,10 @@
-import Dihedral.Neib'
+import Dihedral.Basic
+import Dihedral.ReducedWord
+import Dihedral.Degree
+import Dihedral.Mathlib
+import Dihedral.Chain
+import Dihedral.Ad
+import Dihedral.Identity
+import Dihedral.Ends
+import Dihedral.CurveNeighborhood
+import Dihedral.Computable

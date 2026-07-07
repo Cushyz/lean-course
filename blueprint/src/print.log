@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex 2022.11.24)  9 MAR 2026 18:26
+This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex 2022.11.24)  5 JUL 2026 13:23
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -714,13 +714,6 @@ LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
 (Font)              scaled to size 6.99925pt on input line 4.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
 (Font)              scaled to size 4.99947pt on input line 4.
-
-Overfull \hbox (37.85832pt too wide) in paragraph at lines 14--17
-[]\TU/lmr/m/n/10 All key results are formalized in Lean in \TU/lmtt/m/n/10 Dihe
-dral/alternatingword.lean\TU/lmr/m/n/10 , \TU/lmtt/m/n/10 Dihedral/Degree'.lean
-\TU/lmr/m/n/10 ,
- []
-
 [1
 
 ]
@@ -733,18 +726,6 @@ Chapter 3.
 
 ]
 Chapter 4.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 24.88266pt on input line 92.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 20.74222pt on input line 92.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 17.28183pt on input line 92.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 24.87733pt on input line 92.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 20.73778pt on input line 92.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 17.27815pt on input line 92.
 [4
 
 ]
@@ -757,15 +738,15 @@ Chapter 6.
 
 ] (./print.aux)
 Package rerunfilecheck Info: File `print.out' has not changed.
-(rerunfilecheck)             Checksum: 9658E7EF6675D1837F43486498E3C911;1019.
+(rerunfilecheck)             Checksum: 05B2FB3642331BDBF868FC1FF73E1EC8;1205.
  ) 
 Here is how much of TeX's memory you used:
- 16575 strings out of 476179
- 308826 string characters out of 5810425
- 804229 words of memory out of 5000000
- 37101 multiletter control sequences out of 15000+600000
- 477569 words of font info for 102 fonts, out of 8000000 for 9000
+ 16546 strings out of 476179
+ 307738 string characters out of 5810425
+ 809229 words of memory out of 5000000
+ 37082 multiletter control sequences out of 15000+600000
+ 474678 words of font info for 83 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 86i,9n,115p,332b,434s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 86i,12n,115p,332b,394s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
 Output written on print.pdf (7 pages).
