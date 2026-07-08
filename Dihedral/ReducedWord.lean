@@ -48,7 +48,7 @@ def reducedWord (g : D∞) : List (Fin 2) :=
         CoxeterSystem.alternatingWord 0 1 (2 * k_int.natAbs - 1)
       else
         CoxeterSystem.alternatingWord 1 0 (2 * k_int.natAbs + 1)
--- 辅助函数：定义 D∞ 中元素的预期长度
+-- Helper function: the expected length of an element of D∞
 def explicit_length : D∞ → ℕ
 | r k => 2 * (k.cast : ℤ).natAbs
 | sr k =>
@@ -132,7 +132,7 @@ lemma cs_length_ge_explicit (g : D∞) : explicit_length g ≤ ℓ g := by
   rw [hL_prod, hL_red.eq]
   exact h_bound L
 
--- 证明 reducedWord生成群元素
+-- reducedWord reconstructs the group element
 lemma reducedWord_correct (g : D∞) : cs.wordProd (reducedWord g) = g := by
   cases g with
   | r k =>
@@ -185,10 +185,11 @@ lemma reducedWord_correct (g : D∞) : cs.wordProd (reducedWord g) = g := by
       rw [h_int, neg_neg]
       simp
 
--- explicit_length 与 alternatingWord 长度一致，注意alternatingWord定义中没有交替条件
+-- explicit_length agrees with the length of alternatingWord; note that the
+-- definition of alternatingWord imposes no alternation condition
 lemma explicit_length_alternatingWord (i j : Fin 2) (n : ℕ) (h_ne : i ≠ j) :
     explicit_length (cs.wordProd (CoxeterSystem.alternatingWord i j n)) = n := by
-  -- 利用 wordProd (reducedWord g) = g 的逆向思维
+  -- Using the identity wordProd (reducedWord g) = g in reverse
   rw [cs.prod_alternatingWord_eq_mul_pow]
   split_ifs with h_even
   · -- Even n
@@ -376,7 +377,7 @@ theorem dihedral_induction {P : D∞ → Prop}
     simp only [cs.wordProd_nil]
     exact h1
   | append_singleton xs i ih =>
-    -- 归纳步：cs.wordProd (xs ++ [i]) = cs.wordProd xs * s i
+    -- Inductive step: cs.wordProd (xs ++ [i]) = cs.wordProd xs * s i
     simp only [cs.wordProd_append, cs.wordProd_singleton]
     fin_cases i
     · -- i = 0
@@ -396,7 +397,7 @@ theorem induction_on_alternating {P : D∞ → Prop}
   · intro g hg; exact h_step g 0 hg
   · intro g hg; exact h_step g 1 hg
 
--- D∞ 的 Alternating cases
+-- Alternating cases for D∞
 theorem alternating_cases {P : D∞ → Prop}
     (h : ∀ (i j : Fin 2) (n : ℕ), i ≠ j → P (cs.wordProd (alternatingWord i j n))) :
     ∀ g, P g := by

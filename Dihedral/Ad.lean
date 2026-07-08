@@ -37,15 +37,15 @@ def ReachableSet (u : Vertex) (d : Degree) : Set Vertex :=
 def IsMaximalIn (v : Vertex) (S : Set Vertex) : Prop :=
   v ∈ S ∧ ∀ v' ∈ S, v ≤ v' → v = v'
 
--- 定义 CurveNeighborhood
+-- Definition of CurveNeighborhood
 def CurveNeighborhood (u : Vertex) (d : Degree) : Set Vertex :=
   { v | IsMaximalIn v (ReachableSet u d) }
 
--- 定义集合 A_d(u)
+-- Definition of the set A_d(u)
 def Ad (u : Vertex) (d : Degree) : Set Vertex :=
   { v |  ℓ (u * v) = ℓ u +  ℓ v ∧ φ v ≤ d }
 
--- 定义集合 S 中的极大元子集
+-- The subset of maximal elements of a set S
 def maximalElements (S : Set Vertex) : Set Vertex :=
   { v | IsMaximalIn v S }
 
@@ -88,7 +88,7 @@ private lemma r_reflection_additive_same_odd_abs_eq {nu nx ny : ℤ}
     nx = ny := by
   omega
 
---欲证明有限集
+-- Length bound used to prove that Ad is finite
 lemma h_len_bound : ∀ v ∈ Ad u d, ℓ v ≤ d.a + d.b + 1 := by
     intro v hv
     obtain ⟨h, h_deg⟩ := hv

@@ -11,7 +11,7 @@ deriving DecidableEq
 def α0 : Root := ⟨1, 0, Or.inl rfl⟩
 def α1 : Root := ⟨0, 1, Or.inr rfl⟩
 
--- 根的长度为 a + b
+-- The length of a root is a + b
 def Root.length (α : Root) : ℕ := α.a + α.b
 
 notation "Λ" => CoxeterSystem.alternatingWord
@@ -95,7 +95,7 @@ instance : AddCommMonoid Degree where
     ext; all_goals
       simp only [succ_mul]; rfl
 
---度数的偏序关系
+-- Partial order on degrees
 instance : PartialOrder Degree where
   le d1 d2 := d1.a ≤ d2.a ∧ d1.b ≤ d2.b
   le_refl d := ⟨le_refl _, le_refl _⟩
@@ -138,7 +138,7 @@ lemma getDegree_one : getDegree (1 : D∞) = ⟨0, 0⟩ := rfl
 
 def Root.toDegree (α : Root) : Degree :=⟨α.a, α.b⟩
 
--- def顶点 (Vertices)。在 D∞ 的情况下，顶点是群元素
+-- Vertices. In the case of D∞, vertices are group elements
 abbrev Vertex := D∞
 
 lemma getDegree_alternating_0_even (k : ℕ) :
@@ -206,7 +206,7 @@ theorem length_root_reflection (α : Root) :
   <;>
   simp [length_eq, alternating_reducedWord]
 
---顶点 u 和 v 之间存在边，且度为 α。
+-- Notation φ for the degree map getDegree
 notation "φ" => getDegree
 
 lemma φ_s_alpha_eq (α : Root) : φ (s_α α) = α.toDegree := by
@@ -236,7 +236,7 @@ lemma getDegree_sr (k : ZMod 0) :
     φ (sr k) = ⟨((k.cast : ℤ) - 1).natAbs, (k.cast : ℤ).natAbs⟩ :=
   getDegree_sr_eq k
 
--- lemma：度数加法奇偶性
+-- Parity of degree addition
 lemma degree_add_parity (g h : D∞) :
     ∃ (r s : ℕ), (φ g).a + (φ h).a = (φ (g * h)).a + 2 * r
                ∧ (φ g).b + (φ h).b = (φ (g * h)).b + 2 * s := by

@@ -15,7 +15,7 @@ inductive HasChain : Vertex → Vertex → Degree → Prop where
   | step {u v w : Vertex} {d : Degree} {α : Root} :
       HasChain u v d → IsEdge v w α → HasChain u w (d + α.toDegree)
 
--- 在每一步步进时增加 ℓ w > ℓ v 的判断
+-- Adds the condition ℓ w > ℓ v at each step
 inductive HasIncreasingChain : Vertex → Vertex → Degree → Prop where
   | refl (u : Vertex) : HasIncreasingChain u u 0
   | step {u v w : Vertex} {d : Degree} {α : Root} :
@@ -24,7 +24,7 @@ inductive HasIncreasingChain : Vertex → Vertex → Degree → Prop where
       (ℓ v < ℓ w) →
       HasIncreasingChain u w (d + α.toDegree)
 
--- 如果存在任意度数的递增链，则 u < v
+-- u < v if there is an increasing chain of some degree
 def Lt (u v : Vertex) : Prop :=
   ∃ d : Degree, HasIncreasingChain u v d ∧ u ≠ v
 
@@ -142,7 +142,7 @@ lemma exists_root_eq_sr (k : ZMod 0) : ∃ α : Root, s_α α = sr k := by
 lemma inv_mul_is_sr_of_parity_diff (u v : Vertex)
     (h_parity : (ℓ u) % 2 ≠ (ℓ v) % 2) :
     ∃ k : ℤ, u⁻¹ * v = sr k := by
-  -- D∞ 中元素归纳
+  -- Induction on elements of D∞
   let g := u⁻¹ * v
   cases hg : g with
   | sr k => use k
@@ -162,7 +162,7 @@ lemma inv_mul_is_sr_of_parity_diff (u v : Vertex)
     omega
 
 lemma lt_of_succ_length (u v : Vertex) (h : ℓ v = ℓ u + 1) : u < v := by
-  -- 确定 u⁻¹v 是反射 sr k
+  -- Determine that u⁻¹v is the reflection sr k
   have h_parity : (ℓ u) % 2 ≠ (ℓ v) % 2 := by omega
   obtain ⟨k, hk⟩ := inv_mul_is_sr_of_parity_diff u v h_parity
   obtain ⟨α, hα⟩ := exists_root_eq_sr k
@@ -193,7 +193,7 @@ theorem lt_iff_length_lt (u v : Vertex) :
         rw [hn, Nat.add_zero] at h_diff
         exact lt_of_succ_length u v h_diff
        else
-      -- 递归情况：长度差 > 1
+      -- Recursive case: length difference > 1
       have h_len_v_pos : ℓ v > 0 := by
         rw [h_diff]
         have : n + 1 ≥ 1 := Nat.le_add_left 1 n
@@ -204,7 +204,7 @@ theorem lt_iff_length_lt (u v : Vertex) :
         exact lt_irrefl 0 h_len_v_pos
       obtain ⟨i, h_descent⟩ := cs.exists_rightDescent_of_ne_one h_ne_one
       let w := v * cs.simple i
-      --∃w，使得 ℓ w + 1 = ℓ v，回到归纳
+      -- ∃ w such that ℓ w + 1 = ℓ v, reducing to the induction hypothesis
       have hi : ℓ w = ℓ v - 1 := by
         rw [cs.isRightDescent_iff] at h_descent
         exact Nat.eq_sub_of_add_eq h_descent
