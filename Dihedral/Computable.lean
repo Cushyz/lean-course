@@ -10,9 +10,7 @@ def cLength : D∞ → ℕ
 
 @[simp]
 lemma cLength_eq (g : D∞) : cLength g = ℓ g := by
-  cases g with
-  | r k => simp [cLength]
-  | sr k => simp [cLength]
+  cases g <;> simp [cLength]
 
 instance instDecidableLeDegree (d1 d2 : Degree) : Decidable (d1 ≤ d2) :=
   inferInstanceAs (Decidable (d1.a ≤ d2.a ∧ d1.b ≤ d2.b))
@@ -29,10 +27,8 @@ lemma wordProd_alternating_mem_enumerateD {i j : Fin 2} {m n : ℕ}
     cs.wordProd (alternatingWord i j m) ∈ enumerateD n := by
   dsimp [enumerateD, enumerateD_list]
   simp only [List.mem_toFinset, List.mem_flatMap, List.mem_range, List.mem_cons]
-  use m
-  constructor
-  · omega
-  · fin_cases i <;> fin_cases j <;> simp_all
+  refine ⟨m, by omega, ?_⟩
+  fin_cases i <;> fin_cases j <;> simp_all
 
 lemma mem_enumerateD_of_length_le {g : D∞} {n : ℕ} (hg : ℓ g ≤ n) :
     g ∈ enumerateD n := by
@@ -47,20 +43,15 @@ def Ad_finset (u : Vertex) (d : Degree) : Finset Vertex :=
 
 lemma mem_Ad_of_mem_Ad_finset {u : Vertex} {d : Degree} {v : Vertex}
     (hv : v ∈ Ad_finset u d) : v ∈ Ad u d := by
-  dsimp [Ad_finset] at hv
-  simp only [Finset.mem_filter] at hv
+  simp only [Ad_finset, Finset.mem_filter] at hv
   exact ⟨by simpa [cLength_eq] using hv.2.1, hv.2.2⟩
 
 lemma mem_Ad_finset_iff {u : Vertex} {d : Degree} {v : Vertex} :
     v ∈ Ad_finset u d ↔ v ∈ Ad u d := by
-  constructor
-  · exact mem_Ad_of_mem_Ad_finset
-  · intro hv
-    dsimp [Ad_finset]
-    simp only [Finset.mem_filter]
-    constructor
-    · exact mem_enumerateD_of_length_le (ad_length_bound v hv)
-    · exact ⟨by simpa [cLength_eq] using hv.1, hv.2⟩
+  refine ⟨mem_Ad_of_mem_Ad_finset, fun hv => ?_⟩
+  simp only [Ad_finset, Finset.mem_filter]
+  exact ⟨mem_enumerateD_of_length_le (ad_length_bound v hv),
+    by simpa [cLength_eq] using hv.1, hv.2⟩
 
 @[simp]
 theorem coe_Ad_finset (u : Vertex) (d : Degree) :
@@ -86,15 +77,11 @@ lemma exists_maximal_ad_of_mem_curveNeighborhood_computable {u : Vertex} {d : De
   dsimp [CurveNeighborhood_computable] at hv
   rcases Finset.mem_image.mp hv with ⟨w, hw, h_eq⟩
   rcases Finset.mem_filter.mp hw with ⟨hw_ad_finset, hw_max⟩
-  refine ⟨w, ?_, h_eq.symm⟩
-  constructor
-  · exact mem_Ad_finset_iff.mp hw_ad_finset
-  · intro w' hw'_ad hle
-    by_contra hne
-    have hlt : w < w' := lt_of_le_of_ne hle hne
-    rw [lt_iff_length_lt] at hlt
-    have hmax := hw_max w' (mem_Ad_finset_iff.mpr hw'_ad)
-    exact hmax (by simpa [cLength_eq] using hlt)
+  refine ⟨w, ⟨mem_Ad_finset_iff.mp hw_ad_finset, fun w' hw'_ad hle => ?_⟩, h_eq.symm⟩
+  by_contra hne
+  have hlt : w < w' := lt_of_le_of_ne hle hne
+  rw [lt_iff_length_lt] at hlt
+  exact hw_max w' (mem_Ad_finset_iff.mpr hw'_ad) (by simpa [cLength_eq] using hlt)
 
 theorem mem_CurveNeighborhood_computable_iff {u : Vertex} {d : Degree} {v : Vertex} :
     v ∈ CurveNeighborhood_computable u d ↔ v ∈ CurveNeighborhood u d := by
@@ -106,19 +93,11 @@ theorem mem_CurveNeighborhood_computable_iff {u : Vertex} {d : Degree} {v : Vert
     rw [curve_nbhd_eq_mul_max_ad] at hv
     rcases hv with ⟨w, hw_max, rfl⟩
     dsimp [CurveNeighborhood_computable]
-    apply Finset.mem_image.mpr
-    refine ⟨w, ?_, rfl⟩
-    apply Finset.mem_filter.mpr
-    constructor
-    · exact mem_Ad_finset_iff.mpr hw_max.1
-    · intro w' hw'_finset hlen_lt
-      have hw'_ad : w' ∈ Ad u d := mem_Ad_finset_iff.mp hw'_finset
-      have hlt_order : w < w' := by
-        rw [lt_iff_length_lt]
-        simpa [cLength_eq] using hlen_lt
-      have heq := hw_max.2 w' hw'_ad (le_of_lt hlt_order)
-      have hlen_eq : cLength w = cLength w' := by rw [heq]
-      exact (not_lt_of_ge (le_of_eq hlen_eq.symm)) hlen_lt
+    refine Finset.mem_image.mpr ⟨w, Finset.mem_filter.mpr
+      ⟨mem_Ad_finset_iff.mpr hw_max.1, fun w' hw'_finset hlen_lt => ?_⟩, rfl⟩
+    have hlt_order : w < w' := by rw [lt_iff_length_lt]; simpa [cLength_eq] using hlen_lt
+    have heq := hw_max.2 w' (mem_Ad_finset_iff.mp hw'_finset) hlt_order.le
+    exact absurd (heq ▸ hlen_lt) (lt_irrefl _)
 
 @[simp]
 theorem coe_CurveNeighborhood_computable (u : Vertex) (d : Degree) :

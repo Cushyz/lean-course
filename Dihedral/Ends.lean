@@ -123,15 +123,11 @@ lemma length_add_of_ends_s0_starts_s1 (u v : Vertex)
   cases u with
   | r ku =>
     let ku' : ℤ := ku
-    have hu' : ku' < 0 := by
-      have : ends_in_s0 (r ku') := hu
-      exact (ends_in_s0_r ku').mp this
+    have hu' : ku' < 0 := (ends_in_s0_r ku').mp hu
     cases v with
     | r kv =>
       let kv' : ℤ := kv
-      have hv' : kv' < 0 := by
-        have : starts_with_s1 (r kv') := hv
-        exact (starts_with_s1_r kv').mp this
+      have hv' : kv' < 0 := (starts_with_s1_r kv').mp hv
       simp only [r_mul_r, length_r]
       change 2 * Int.natAbs (ku' + kv') = 2 * Int.natAbs ku' + 2 * Int.natAbs kv'
       have h : (ku' + kv').natAbs = ku'.natAbs + kv'.natAbs :=
@@ -140,9 +136,7 @@ lemma length_add_of_ends_s0_starts_s1 (u v : Vertex)
       ring
     | sr kv =>
       let kv' : ℤ := kv
-      have hv' : kv' > 0 := by
-        have : starts_with_s1 (sr kv') := hv
-        exact (starts_with_s1_sr kv').mp this
+      have hv' : kv' > 0 := (starts_with_s1_sr kv').mp hv
       have h_pos : kv' - ku' > 0 := by linarith
       have h_natAbs : (kv' - ku').natAbs = kv'.natAbs + ku'.natAbs := by
         rw [show kv' - ku' = kv' + (-ku') by ring,
@@ -158,16 +152,12 @@ lemma length_add_of_ends_s0_starts_s1 (u v : Vertex)
         exact h1 h_pos
   | sr ku =>
     let ku' : ℤ := ku
-    have hu' : ku' ≤ 0 := by
-      have : ends_in_s0 (sr ku') := hu
-      exact (ends_in_s0_sr ku').mp this
+    have hu' : ku' ≤ 0 := (ends_in_s0_sr ku').mp hu
     have h_u_not_pos : ¬(ku' > 0) := not_lt.mpr hu'
     cases v with
     | r kv =>
       let kv' : ℤ := kv
-      have hv' : kv' < 0 := by
-        have : starts_with_s1 (r kv') := hv
-        exact (starts_with_s1_r kv').mp this
+      have hv' : kv' < 0 := (starts_with_s1_r kv').mp hv
       have h_sum_not_pos : ¬(ku' + kv' > 0) := by linarith
       have h_natAbs : (ku' + kv').natAbs = ku'.natAbs + kv'.natAbs :=
         Int.natAbs_add_of_nonpos hu' (le_of_lt hv')
@@ -181,9 +171,7 @@ lemma length_add_of_ends_s0_starts_s1 (u v : Vertex)
         omega
     | sr kv =>
       let kv' : ℤ := kv
-      have hv' : kv' > 0 := by
-        have : starts_with_s1 (sr kv') := hv
-        exact (starts_with_s1_sr kv').mp this
+      have hv' : kv' > 0 := (starts_with_s1_sr kv').mp hv
       have h_natAbs : (kv' - ku').natAbs = kv'.natAbs + ku'.natAbs := by
         rw [show kv' - ku' = kv' + (-ku') by ring,
           Int.natAbs_add_of_nonneg (le_of_lt hv') (by linarith : (0 : ℤ) ≤ -ku'),
@@ -204,11 +192,10 @@ lemma not_length_add_of_ends_s0_mul_r_pos (u : Vertex) (k : ℤ)
   | r m =>
     let m' : ℤ := m
     have hm : m' < 0 := (ends_in_s0_r m').mp hu
-    have hlen_u : ℓ (r m') = 2 * m'.natAbs := by simp [length_r]
-    have hlen_v : ℓ (r k) = 2 * k.natAbs := by simp [length_r]
+    have hlen_u : ℓ (r m') = 2 * m'.natAbs := length_r m'
+    have hlen_v : ℓ (r k) = 2 * k.natAbs := length_r k
     have hlen_prod : ℓ (r m' * r k) = 2 * (m' + k).natAbs := by
-      simp [r_mul_r, length_r]
-      rfl
+      rw [r_mul_r]; exact length_r _
     intro heq
     rw [hlen_u, hlen_v, hlen_prod] at heq
     have h_abs : (m' + k).natAbs ≤ m'.natAbs + k.natAbs := Int.natAbs_add_le m' k
@@ -217,12 +204,11 @@ lemma not_length_add_of_ends_s0_mul_r_pos (u : Vertex) (k : ℤ)
     let m' : ℤ := m
     have hm : m' ≤ 0 := (ends_in_s0_sr m').mp hu
     have hlen_u : ℓ (sr m') = 2 * m'.natAbs + 1 := by
-      simp [length_sr, not_lt.mpr hm]
-    have hlen_v : ℓ (r k) = 2 * k.natAbs := by simp [length_r]
+      rw [length_sr, if_neg (not_lt.mpr hm)]
+    have hlen_v : ℓ (r k) = 2 * k.natAbs := length_r k
     have hlen_prod : ℓ (sr m' * r k)
         = (if m' + k > 0 then 2 * (m' + k).natAbs - 1 else 2 * (m' + k).natAbs + 1) := by
-      simp [sr_mul_r, length_sr]
-      rfl
+      rw [sr_mul_r]; exact length_sr _
     intro heq
     rw [hlen_u, hlen_v, hlen_prod] at heq
     split_ifs at heq with hmk
@@ -238,9 +224,9 @@ lemma not_length_add_of_ends_s0_mul_sr_nonpos (u : Vertex) (k : ℤ)
   | r m =>
     let m' : ℤ := m
     have hm : m' < 0 := (ends_in_s0_r m').mp hu
-    have hlen_u : ℓ (r m') = 2 * m'.natAbs := by simp [length_r]
+    have hlen_u : ℓ (r m') = 2 * m'.natAbs := length_r m'
     have hlen_v : ℓ (sr k) = 2 * k.natAbs + 1 := by
-      simp [length_sr, not_lt.mpr hk]
+      rw [length_sr, if_neg (not_lt.mpr hk)]
     have hlen_prod : ℓ (r m' * sr k)
         = (if k - m' > 0 then 2 * (k - m').natAbs - 1 else 2 * (k - m').natAbs + 1) := by
       rw [r_mul_sr, length_sr]
@@ -256,16 +242,27 @@ lemma not_length_add_of_ends_s0_mul_sr_nonpos (u : Vertex) (k : ℤ)
     let m' : ℤ := m
     have hm : m' ≤ 0 := (ends_in_s0_sr m').mp hu
     have hlen_u : ℓ (sr m') = 2 * m'.natAbs + 1 := by
-      simp [length_sr, not_lt.mpr hm]
+      rw [length_sr, if_neg (not_lt.mpr hm)]
     have hlen_v : ℓ (sr k) = 2 * k.natAbs + 1 := by
-      simp [length_sr, not_lt.mpr hk]
+      rw [length_sr, if_neg (not_lt.mpr hk)]
     have hlen_prod : ℓ (sr m' * sr k) = 2 * (k - m').natAbs := by
-      simp [sr_mul_sr, length_r]
-      rfl
+      rw [sr_mul_sr]; exact length_r _
     intro heq
     rw [hlen_u, hlen_v, hlen_prod] at heq
     have h_abs : (k - m').natAbs ≤ k.natAbs + m'.natAbs := Int.natAbs_sub_le k m'
     omega
+
+-- (extracted by Fuse golfer)
+private lemma isMaximalIn_of_len_bound (u w : Vertex) (d : Degree) (L : ℕ)
+    (hmem : w ∈ Ad u d) (hw_len : ℓ w = L)
+    (hbound : ∀ v ∈ Ad u d, ℓ v ≤ L) : IsMaximalIn w (Ad u d) := by
+  refine ⟨hmem, fun v hv hv_le => ?_⟩
+  rcases hv_le with hv_lt | hv_eq
+  · have hlen_lt : ℓ w < ℓ v := (lt_iff_length_lt w v).mp hv_lt
+    rw [hw_len] at hlen_lt
+    have := hbound v hv
+    omega
+  · exact hv_eq
 
 theorem max_ad_b_gt_a_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     (h : d.b > d.a) : IsMaximalIn (s_alpha_d d) (Ad u d) := by
@@ -328,15 +325,7 @@ theorem max_ad_b_gt_a_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
         rw [hk_sub] at hv_deg
         change 2 * (k.cast : ℤ).natAbs + 1 ≤ 2 * d.a + 1
         omega
-  constructor
-  · exact ⟨h_len, h_deg⟩
-  · intro v hv hv_le
-    rcases hv_le with hv_lt | hv_eq
-    · have hlen_lt : ℓ w < ℓ v := (lt_iff_length_lt w v).mp hv_lt
-      have hlen_bound := hv_len_bound v hv
-      rw [hw_len] at hlen_lt
-      omega
-    · exact hv_eq
+  exact isMaximalIn_of_len_bound u w d (2 * d.a + 1) ⟨h_len, h_deg⟩ hw_len hv_len_bound
 
 theorem max_ad_a_gt_b_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
     (h : d.a > d.b) : IsMaximalIn (s0 * s_alpha_d d) (Ad u d) := by
@@ -391,18 +380,8 @@ theorem max_ad_a_gt_b_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
           let k' : ℤ := k
           have hk' : k' ≤ 0 := by
             simpa [k', gt_iff_lt] using hk
-          have hv_len_eq' : ℓ (u * sr k') = ℓ u + ℓ (sr k') := by
-            simpa [k'] using hv_len_eq
-          exact (not_length_add_of_ends_s0_mul_sr_nonpos u k' hu hk') hv_len_eq'
-    constructor
-    · exact ⟨h_len, h_deg⟩
-    · intro v hv hv_le
-      rcases hv_le with hv_lt | hv_eq
-      · have hlen_lt : ℓ w < ℓ v := (lt_iff_length_lt w v).mp hv_lt
-        have hlen_bound := hv_len_bound v hv
-        rw [hw_len] at hlen_lt
-        omega
-      · exact hv_eq
+          exact not_length_add_of_ends_s0_mul_sr_nonpos u k' hu hk' (by simpa [k'] using hv_len_eq)
+    exact isMaximalIn_of_len_bound u w d (2 * d.b) ⟨h_len, h_deg⟩ hw_len hv_len_bound
   · have hb_zero : d.b = 0 := Nat.eq_zero_of_not_pos hb_pos
     have hw_one : w = 1 := by
       rw [hw_r, hb_zero]
@@ -425,9 +404,7 @@ theorem max_ad_a_gt_b_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
           have hk_zero : k.natAbs = 0 := Nat.eq_zero_of_le_zero h
           have hk_eq : k = 0 := Int.natAbs_eq_zero.mp hk_zero
           subst hk_eq
-          have hv_len_eq' : ℓ (u * sr (0 : ℤ)) = ℓ u + ℓ (sr (0 : ℤ)) := by
-            exact hv_len_eq
-          exact (not_length_add_of_ends_s0_mul_sr_nonpos u (0 : ℤ) hu (by omega)) hv_len_eq'
+          exact not_length_add_of_ends_s0_mul_sr_nonpos u (0 : ℤ) hu (by omega) hv_len_eq
       exact (length_eq_zero_iff cs).mp hv_len_zero
     rw [hw_one]
     constructor
@@ -465,11 +442,8 @@ theorem max_ad_a_eq_b_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
       simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr,
         zero_sub, h_div, r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
       apply congrArg sr
-      have hcast : ((a - 1 : ℕ) : ℤ) = (a : ℤ) - 1 := by
-        exact Nat.cast_sub (by omega : 1 ≤ a)
       change -(((a - 1 : ℕ) : ℤ)) = 1 - (a : ℤ)
-      rw [hcast]
-      ring_nf
+      omega
     have hw_r : w = r (-(a : ℤ)) := by
       rw [hw_def, hs_alpha, s1, sr_mul_sr]
       apply congrArg r
@@ -495,10 +469,8 @@ theorem max_ad_a_eq_b_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
       | r k =>
         let k' : ℤ := k
         by_cases hk_sign : 0 < k'
-        · exfalso
-          have hv_len_eq' : ℓ (u * r k') = ℓ u + ℓ (r k') := by
-            simpa [k'] using hv_len_eq
-          exact (not_length_add_of_ends_s0_mul_r_pos u k' hu hk_sign) hv_len_eq'
+        · exact absurd (by simpa [k'] using hv_len_eq)
+            (not_length_add_of_ends_s0_mul_r_pos u k' hu hk_sign)
         · simp only [getDegree_r, Degreele_le_def] at hv_deg
           simp only [length_r]
           exact Nat.mul_le_mul_left 2 hv_deg.1
@@ -512,20 +484,9 @@ theorem max_ad_a_eq_b_ends_s0 (u : Vertex) (d : Degree) (hu : ends_in_s0 u)
             simpa [k', h.symm] using hv_deg.2
           have h2 : 2 * k'.natAbs ≤ 2 * a := Nat.mul_le_mul_left 2 hk_le_a
           split_ifs <;> omega
-        · exfalso
-          have hk_le : k' ≤ 0 := not_lt.mp hk_pos
-          have hv_len_eq' : ℓ (u * sr k') = ℓ u + ℓ (sr k') := by
-            simpa [k'] using hv_len_eq
-          exact (not_length_add_of_ends_s0_mul_sr_nonpos u k' hu hk_le) hv_len_eq'
-    constructor
-    · exact ⟨h_len, h_deg⟩
-    · intro v hv hv_le
-      rcases hv_le with hv_lt | hv_eq
-      · have hlen_lt : ℓ w < ℓ v := (lt_iff_length_lt w v).mp hv_lt
-        have hlen_bound := hv_len_bound v hv
-        rw [hw_len] at hlen_lt
-        omega
-      · exact hv_eq
+        · exact absurd (by simpa [k'] using hv_len_eq)
+            (not_length_add_of_ends_s0_mul_sr_nonpos u k' hu (not_lt.mp hk_pos))
+    exact isMaximalIn_of_len_bound u w d (2 * a) ⟨h_len, h_deg⟩ hw_len hv_len_bound
   · have ha_zero : a = 0 := Nat.eq_zero_of_not_pos ha_pos
     have hd_zero : d = ⟨0, 0⟩ := by
       ext <;> simp only

@@ -22,21 +22,14 @@ lemma curveNeighborhood_s0_23 :
     rw [s0]
     change ends_in_s0 (sr (0 : ℤ))
     exact (ends_in_s0_sr (0 : ℤ)).mpr (by norm_num)
-  have h_u_ne_1 : s0 ≠ 1 := by
-    decide
   have h_max := max_ad_ends_s0 s0 {a := 2, b := 3} h_ends
   rw [if_neg (by norm_num), if_pos (by norm_num)] at h_max
-  have h_unique := exists_unique_max_ad_ne_one s0 {a := 2, b := 3} h_u_ne_1
+  obtain ⟨m, -, h_uniq_eq⟩ := exists_unique_max_ad_ne_one s0 {a := 2, b := 3} (by decide)
   ext v
   simp only [Set.mem_setOf_eq, Set.mem_singleton_iff]
   constructor
   · rintro ⟨w, hw_is_max, rfl⟩
-    have h_w_eq : w = s_alpha_d {a := 2, b := 3} := by
-      rcases h_unique with ⟨m, hm, h_uniq_eq⟩
-      have h1 : w = m := by exact h_uniq_eq w hw_is_max
-      have h2 : s_alpha_d {a := 2, b := 3} = m := h_uniq_eq _ h_max
-      rw [h1, h2]
-    rw [h_w_eq]
+    rw [h_uniq_eq w hw_is_max, h_uniq_eq _ h_max]
   · rintro rfl
     exact ⟨s_alpha_d {a := 2, b := 3}, h_max, rfl⟩
 

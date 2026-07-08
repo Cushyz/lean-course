@@ -15,85 +15,20 @@ private lemma sr_length_abs_lt_pos_candidate {n p : ZMod 0} {a : ℕ}
     have hnp : (((n.cast : ℤ) : ZMod 0) = ((p.cast : ℤ) : ZMod 0)) := by
       simp [hc, hp]
     exact (ZMod.intCast_zmod_cast n).symm.trans (hnp.trans (ZMod.intCast_zmod_cast p))
-  by_cases hpos : 0 < (n.cast : ℤ)
-  · apply Int.ofNat_lt.mp
-    rw [Int.natAbs_of_nonneg (by omega)]
-    have hleftz : (n.cast : ℤ) - 1 ≤ (a : ℤ) := by
-      calc
-        (n.cast : ℤ) - 1 = ((((n.cast : ℤ) - 1).natAbs : ℕ) : ℤ) := by
-          rw [Int.natAbs_of_nonneg (by omega)]
-        _ ≤ (a : ℤ) := by exact_mod_cast hleft
-    have hnle : (n.cast : ℤ) ≤ (a : ℤ) := by omega
-    omega
-  · have hn_nonpos : (n.cast : ℤ) ≤ 0 := by omega
-    apply Int.ofNat_lt.mp
-    have hlen : (((2 * (n.cast : ℤ) - 1).natAbs : ℕ) : ℤ) =
-        -(2 * (n.cast : ℤ) - 1) := by
-      calc
-        (((2 * (n.cast : ℤ) - 1).natAbs : ℕ) : ℤ)
-            = (((-(2 * (n.cast : ℤ) - 1)).natAbs : ℕ) : ℤ) := by
-              rw [Int.natAbs_neg]
-        _ = -(2 * (n.cast : ℤ) - 1) := Int.natAbs_of_nonneg (by omega)
-    rw [hlen]
-    have hleftz : -((n.cast : ℤ) - 1) ≤ (a : ℤ) := by
-      calc
-        -((n.cast : ℤ) - 1) = ((((n.cast : ℤ) - 1).natAbs : ℕ) : ℤ) := by
-          calc
-            -((n.cast : ℤ) - 1) =
-                (((-((n.cast : ℤ) - 1)).natAbs : ℕ) : ℤ) := by
-                  rw [Int.natAbs_of_nonneg (by omega)]
-            _ = ((((n.cast : ℤ) - 1).natAbs : ℕ) : ℤ) := by
-                  rw [Int.natAbs_neg]
-        _ ≤ (a : ℤ) := by exact_mod_cast hleft
-    omega
+  omega
 
 private lemma sr_length_abs_lt_neg_candidate {n p : ZMod 0} {b : ℕ}
     (hp : (p.cast : ℤ) = -(b : ℤ))
     (hright : (n.cast : ℤ).natAbs ≤ b) (hne : n ≠ p) :
     (2 * (n.cast : ℤ) - 1).natAbs < (2 * (p.cast : ℤ) - 1).natAbs := by
-  have hp_len : (2 * (p.cast : ℤ) - 1).natAbs = 2 * b + 1 := by
-    rw [hp]
-    apply Nat.cast_injective (R := ℤ)
-    calc
-      (((2 * (-(b : ℤ)) - 1).natAbs : ℕ) : ℤ)
-          = (((-(2 * (-(b : ℤ)) - 1)).natAbs : ℕ) : ℤ) := by
-            rw [Int.natAbs_neg]
-      _ = -(2 * (-(b : ℤ)) - 1) := Int.natAbs_of_nonneg (by omega)
-      _ = ((2 * b + 1 : ℕ) : ℤ) := by norm_num; omega
-  rw [hp_len]
   have hn_cast_ne : (n.cast : ℤ) ≠ -(b : ℤ) := by
     intro hc
     apply hne
     have hnp : (((n.cast : ℤ) : ZMod 0) = ((p.cast : ℤ) : ZMod 0)) := by
       simp [hc, hp]
     exact (ZMod.intCast_zmod_cast n).symm.trans (hnp.trans (ZMod.intCast_zmod_cast p))
-  by_cases hpos : 0 < (n.cast : ℤ)
-  · apply Int.ofNat_lt.mp
-    rw [Int.natAbs_of_nonneg (by omega)]
-    have hrightz : (n.cast : ℤ) ≤ (b : ℤ) := by
-      calc
-        (n.cast : ℤ) = (((n.cast : ℤ).natAbs : ℕ) : ℤ) := by
-          rw [Int.natAbs_of_nonneg (by omega)]
-        _ ≤ (b : ℤ) := by exact_mod_cast hright
-    omega
-  · have hn_nonpos : (n.cast : ℤ) ≤ 0 := by omega
-    apply Int.ofNat_lt.mp
-    have hlen : (((2 * (n.cast : ℤ) - 1).natAbs : ℕ) : ℤ) =
-        -(2 * (n.cast : ℤ) - 1) := by
-      calc
-        (((2 * (n.cast : ℤ) - 1).natAbs : ℕ) : ℤ)
-            = (((-(2 * (n.cast : ℤ) - 1)).natAbs : ℕ) : ℤ) := by
-              rw [Int.natAbs_neg]
-        _ = -(2 * (n.cast : ℤ) - 1) := Int.natAbs_of_nonneg (by omega)
-    rw [hlen]
-    have hrightz : -(n.cast : ℤ) ≤ (b : ℤ) := by
-      calc
-        -(n.cast : ℤ) = (((-(n.cast : ℤ)).natAbs : ℕ) : ℤ) := by
-          rw [Int.natAbs_of_nonneg (by omega)]
-        _ = (((n.cast : ℤ).natAbs : ℕ) : ℤ) := by rw [Int.natAbs_neg]
-        _ ≤ (b : ℤ) := by exact_mod_cast hright
-    have hlt_abs : -(n.cast : ℤ) < (b : ℤ) := by omega
-    omega
+  rw [hp]
+  omega
 
 -- (Reachable Set)
 def ReachableSet (u : Vertex) (d : Degree) : Set Vertex :=
@@ -123,29 +58,8 @@ private lemma sr_additive_same_abs_eq {nu nx ny : ℤ}
       (if 0 < nu then 2 * nu.natAbs - 1 else 2 * nu.natAbs + 1) + 2 * ny.natAbs)
     (h_abs : nx.natAbs = ny.natAbs) :
     nx = ny := by
-  rcases Int.natAbs_eq nx with hnx | hnx
-  case inl =>
-    rcases Int.natAbs_eq ny with hny | hny
-    case inl =>
-      rw [hnx, hny]
-      exact_mod_cast h_abs
-    case inr =>
-      rw [hnx] at hv
-      rw [h_abs] at hv
-      rw [hny] at hw
-      rw [hnx, hny, h_abs]
-      split_ifs at hv hw <;> omega
-  case inr =>
-    rcases Int.natAbs_eq ny with hny | hny
-    case inl =>
-      rw [hnx] at hv
-      rw [h_abs] at hv
-      rw [hny] at hw
-      rw [hnx, hny, h_abs]
-      split_ifs at hv hw <;> omega
-    case inr =>
-      rw [hnx, hny]
-      omega
+  have hvw := hv.trans hw.symm
+  split_ifs at hvw <;> omega
 
 private lemma sr_reflection_additive_same_odd_abs_eq {nu nx ny : ℤ}
     (hw : 2 * Int.natAbs (ny - nu) =
@@ -154,21 +68,7 @@ private lemma sr_reflection_additive_same_odd_abs_eq {nu nx ny : ℤ}
       (2 * nu - 1).natAbs + (2 * nx - 1).natAbs)
     (h_abs : (2 * nx - 1).natAbs = (2 * ny - 1).natAbs) :
     nx = ny := by
-  have hsq := Int.natAbs_eq_iff_sq_eq.mp h_abs
-  rcases eq_or_eq_neg_of_sq_eq_sq (2 * nx - 1) (2 * ny - 1) hsq with heq | hneg
-  case inl =>
-    omega
-  case inr =>
-    have hny_eq : ny = 1 - nx := by omega
-    rw [hny_eq] at hw
-    rw [hny_eq]
-    rcases Int.natAbs_eq nx with hnx | hnx
-    case inl =>
-      rw [hnx] at hv hw
-      omega
-    case inr =>
-      rw [hnx] at hv hw
-      omega
+  omega
 
 private lemma r_additive_same_abs_eq {nu nx ny : ℤ}
     (hnu : nu ≠ 0)
@@ -176,61 +76,7 @@ private lemma r_additive_same_abs_eq {nu nx ny : ℤ}
     (hv : 2 * Int.natAbs (nu + nx) = 2 * nu.natAbs + 2 * nx.natAbs)
     (h_abs : nx.natAbs = ny.natAbs) :
     nx = ny := by
-  have hnu_abs_pos : 0 < (nu.natAbs : ℤ) := by
-    have hnat : 0 < nu.natAbs := by
-      exact Nat.pos_of_ne_zero (by
-        intro hz
-        exact hnu (Int.natAbs_eq_zero.mp hz))
-    exact_mod_cast hnat
-  rcases Int.natAbs_eq nu with hnu_pos | hnu_neg
-  case inl =>
-    rcases Int.natAbs_eq nx with hnx | hnx
-    case inl =>
-      rcases Int.natAbs_eq ny with hny | hny
-      case inl =>
-        rw [hnx, hny]
-        exact_mod_cast h_abs
-      case inr =>
-        rw [hnu_pos, hnx] at hv
-        rw [h_abs] at hv
-        rw [hnu_pos, hny] at hw
-        rw [hnx, hny, h_abs]
-        omega
-    case inr =>
-      rcases Int.natAbs_eq ny with hny | hny
-      case inl =>
-        rw [hnu_pos, hnx] at hv
-        rw [h_abs] at hv
-        rw [hnu_pos, hny] at hw
-        rw [hnx, hny, h_abs]
-        omega
-      case inr =>
-        rw [hnx, hny]
-        omega
-  case inr =>
-    rcases Int.natAbs_eq nx with hnx | hnx
-    case inl =>
-      rcases Int.natAbs_eq ny with hny | hny
-      case inl =>
-        rw [hnx, hny]
-        exact_mod_cast h_abs
-      case inr =>
-        rw [hnu_neg, hnx] at hv
-        rw [h_abs] at hv
-        rw [hnu_neg, hny] at hw
-        rw [hnx, hny, h_abs]
-        omega
-    case inr =>
-      rcases Int.natAbs_eq ny with hny | hny
-      case inl =>
-        rw [hnu_neg, hnx] at hv
-        rw [h_abs] at hv
-        rw [hnu_neg, hny] at hw
-        rw [hnx, hny, h_abs]
-        omega
-      case inr =>
-        rw [hnx, hny]
-        omega
+  omega
 
 private lemma r_reflection_additive_same_odd_abs_eq {nu nx ny : ℤ}
     (hnu : nu ≠ 0)
@@ -240,39 +86,7 @@ private lemma r_reflection_additive_same_odd_abs_eq {nu nx ny : ℤ}
       2 * nu.natAbs + (2 * nx - 1).natAbs)
     (h_abs : (2 * nx - 1).natAbs = (2 * ny - 1).natAbs) :
     nx = ny := by
-  have hnu_abs_pos : 0 < (nu.natAbs : ℤ) := by
-    have hnat : 0 < nu.natAbs := by
-      exact Nat.pos_of_ne_zero (by
-        intro hz
-        exact hnu (Int.natAbs_eq_zero.mp hz))
-    exact_mod_cast hnat
-  have hsq := Int.natAbs_eq_iff_sq_eq.mp h_abs
-  rcases eq_or_eq_neg_of_sq_eq_sq (2 * nx - 1) (2 * ny - 1) hsq with heq | hneg
-  case inl =>
-    omega
-  case inr =>
-    have hny_eq : ny = 1 - nx := by omega
-    rw [hny_eq] at hw
-    rw [hny_eq]
-    rcases Int.natAbs_eq nu with hnu_pos | hnu_neg
-    case inl =>
-      rw [hnu_pos] at hv hw
-      rcases Int.natAbs_eq nx with hnx | hnx
-      case inl =>
-        rw [hnx] at hv hw
-        omega
-      case inr =>
-        rw [hnx] at hv hw
-        omega
-    case inr =>
-      rw [hnu_neg] at hv hw
-      rcases Int.natAbs_eq nx with hnx | hnx
-      case inl =>
-        rw [hnx] at hv hw
-        omega
-      case inr =>
-        rw [hnx] at hv hw
-        omega
+  omega
 
 --欲证明有限集
 lemma h_len_bound : ∀ v ∈ Ad u d, ℓ v ≤ d.a + d.b + 1 := by
@@ -349,13 +163,14 @@ lemma h_chain {u : Vertex} (h : u ≠ 1) : IsChain (· ≤ ·) (Ad u d) := by
   | sr nu =>
     rcases x with ⟨nx⟩ | ⟨nx⟩ <;>
     rcases y with ⟨ny⟩ | ⟨ny⟩
-    · simp_all
+    · simp_all only [sr_mul_r, length_sr, length_r, r.injEq, mul_eq_mul_left_iff,
+        OfNat.ofNat_ne_zero, or_false]
       intro h_abs
-      simp_all
+      rw [h_abs] at hv
       change ℤ at *
       exact hxy (sr_additive_same_abs_eq hw hv h_abs)
-    · simp_all; grind
-    · simp_all; grind
+    · rw [length_r, length_sr_abs]; omega
+    · rw [length_r, length_sr_abs]; omega
     · simp only [sr_mul_sr] at hv hw
       rw [length_sr_abs, length_sr_abs, length_r] at hv hw
       rw [length_sr_abs, length_sr_abs]
@@ -375,8 +190,8 @@ lemma h_chain {u : Vertex} (h : u ≠ 1) : IsChain (· ≤ ·) (Ad u d) := by
       change ℤ at *
       intro h_abs
       exact hxy (r_additive_same_abs_eq nun0 hw hv h_abs)
-    · simp_all; grind
-    · simp_all; grind
+    · rw [length_r, length_sr_abs]; omega
+    · rw [length_r, length_sr_abs]; omega
     · simp only [r_mul_sr] at hv hw
       rw [length_sr_abs, length_sr_abs, length_r] at hv hw
       rw [length_sr_abs, length_sr_abs]
@@ -592,14 +407,7 @@ theorem exists_unique_max_ad_one_neq (d : Degree) :
             have hlt : ℓ (r n) < ℓ (sr p) := by
               rw [length_r, length_sr_abs]
               have hp_len : (2 * (p.cast : ℤ) - 1).natAbs = 2 * b + 1 := by
-                rw [hp_cast]
-                apply Nat.cast_injective (R := ℤ)
-                calc
-                  (((2 * (-(b : ℤ)) - 1).natAbs : ℕ) : ℤ)
-                      = (((-(2 * (-(b : ℤ)) - 1)).natAbs : ℕ) : ℤ) := by
-                        rw [Int.natAbs_neg]
-                  _ = -(2 * (-(b : ℤ)) - 1) := Int.natAbs_of_nonneg (by omega)
-                  _ = ((2 * b + 1 : ℕ) : ℤ) := by norm_num; omega
+                rw [hp_cast]; omega
               rw [hp_len]
               exact Nat.lt_of_le_of_lt (Nat.mul_le_mul_left 2 h2) (by omega)
             exact h3 (le_of_lt ((lt_iff_length_lt _ _).mpr hlt))
@@ -632,19 +440,7 @@ theorem max_ad_one_diag_iff_r_or_neg_r (a : ℕ) (v : Vertex) :
         · exact le_trans (Nat.sub_le _ _) (Nat.mul_le_mul_left 2 h_deg.2)
       · have hk_nonpos : (k.cast : ℤ) ≤ 0 := le_of_not_gt h_pos
         have h_abs_sub : ((k.cast : ℤ) - 1).natAbs = (k.cast : ℤ).natAbs + 1 := by
-          apply Nat.cast_injective (R := ℤ)
-          calc
-            ((((k.cast : ℤ) - 1).natAbs : ℕ) : ℤ)
-                = (((-((k.cast : ℤ) - 1)).natAbs : ℕ) : ℤ) := by
-                  rw [Int.natAbs_neg]
-            _ = -((k.cast : ℤ) - 1) := Int.natAbs_of_nonneg (by omega)
-            _ = (-(k.cast : ℤ)) + 1 := by omega
-            _ = (((-(k.cast : ℤ)).natAbs : ℕ) : ℤ) + 1 := by
-                  rw [Int.natAbs_of_nonneg (by omega)]
-            _ = (((k.cast : ℤ).natAbs : ℕ) : ℤ) + 1 := by
-                  rw [Int.natAbs_neg]
-            _ = ((((k.cast : ℤ).natAbs + 1 : ℕ) : ℤ)) := by
-                  rw [Nat.cast_add, Nat.cast_one]
+          omega
         rw [h_abs_sub] at h_deg
         have hmul : 2 * ((k.cast : ℤ).natAbs + 1) ≤ 2 * a :=
           Nat.mul_le_mul_left 2 h_deg.1

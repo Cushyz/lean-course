@@ -166,23 +166,41 @@ theorem curve_nbhd_one_diag (d : Degree) (p : d.a = d.b) :
   rw [← hf] at h
   rw [h, s0s1_pow_equiv, s1s0_pow_equiv]
 
+/-- Closed form of the root reflection `s_{α(d)}` when `d.a > d.b`. -/
+private lemma s_alpha_d_eq_sr_neg (d : Degree) (h : d.a > d.b) :
+    s_alpha_d d = sr (-(d.b : ℤ)) := by -- (extracted by Fuse golfer)
+  unfold s_alpha_d s_α root_from_degree
+  simp only [h, ↓reduceIte, Fin.isValue]
+  have hsum : d.b + 1 + d.b = 2 * d.b + 1 := by omega
+  rw [hsum, cs.prod_alternatingWord_eq_mul_pow 1 0 (2 * d.b + 1)]
+  have hdiv : (2 * d.b + 1) / 2 = d.b := by omega
+  rw [hdiv]
+  simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr,
+    zero_sub, r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
+  rw [if_pos (by omega : d.b + 1 > d.b)]
+  rfl
+
+/-- Closed form of the root reflection `s_{α(d)}` when `¬ d.a > d.b`. -/
+private lemma s_alpha_d_eq_sr_succ (d : Degree) (h : ¬ d.a > d.b) :
+    s_alpha_d d = sr ((d.a : ℤ) + 1) := by -- (extracted by Fuse golfer)
+  unfold s_alpha_d s_α root_from_degree
+  simp only [h, ↓reduceIte, Fin.isValue]
+  have hsum : d.a + (d.a + 1) = 2 * d.a + 1 := by omega
+  rw [hsum, cs.prod_alternatingWord_eq_mul_pow 0 1 (2 * d.a + 1)]
+  have hdiv : (2 * d.a + 1) / 2 = d.a := by omega
+  rw [hdiv]
+  simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr,
+    sub_zero, r_pow, one_mul, sr_mul_r]
+  have hnot : ¬ d.a > d.a + 1 := by omega
+  simp [hnot, add_comm]
+  rfl
+
 /-- Formula (3), off-diagonal maximality: `s_{α(d)}` is the unique maximal
 endpoint of `A_d(1)` when `d` is not diagonal. -/
 lemma s_alpha_d_maximal (d : Degree) (p : d.a ≠ d.b) :
   IsMaximalIn (s_alpha_d d) (Ad 1 d) := by
   by_cases h : d.a > d.b
-  · have hs : s_alpha_d d = sr (-(d.b : ℤ)) := by
-      unfold s_alpha_d s_α root_from_degree
-      simp only [h, ↓reduceIte, Fin.isValue]
-      have hsum : d.b + 1 + d.b = 2 * d.b + 1 := by omega
-      rw [hsum, cs.prod_alternatingWord_eq_mul_pow 1 0 (2 * d.b + 1)]
-      have hdiv : (2 * d.b + 1) / 2 = d.b := by omega
-      rw [hdiv]
-      simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr,
-        zero_sub, r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
-      have hgt : d.b + 1 > d.b := by omega
-      simp [hgt]
-      rfl
+  · have hs := s_alpha_d_eq_sr_neg d h
     rw [hs, ad_one_eq_degree_le]
     refine ⟨?_, ?_⟩
     · simp [getDegree_sr]
@@ -192,6 +210,7 @@ lemma s_alpha_d_maximal (d : Degree) (p : d.a ≠ d.b) :
       have hv_cmp : (ℓ (sr (-(d.b : ℤ))) < ℓ v) ∨ (sr (-(d.b : ℤ)) = v) := by
         rw [← lt_iff_length_lt]
         exact hv_le'
+      clear hs hv_le hv_le'
       cases v with
       | r n =>
         rw [length_sr_abs, length_r] at hv_cmp
@@ -203,18 +222,7 @@ lemma s_alpha_d_maximal (d : Degree) (p : d.a ≠ d.b) :
           simp_all [getDegree_sr]
           omega
         · simpa using heq
-  · have hs : s_alpha_d d = sr ((d.a : ℤ) + 1) := by
-      unfold s_alpha_d s_α root_from_degree
-      simp only [h, ↓reduceIte, Fin.isValue]
-      have hsum : d.a + (d.a + 1) = 2 * d.a + 1 := by omega
-      rw [hsum, cs.prod_alternatingWord_eq_mul_pow 0 1 (2 * d.a + 1)]
-      have hdiv : (2 * d.a + 1) / 2 = d.a := by omega
-      rw [hdiv]
-      simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr,
-        sub_zero, r_pow, one_mul, sr_mul_r]
-      have hnot : ¬ d.a > d.a + 1 := by omega
-      simp [hnot, add_comm]
-      rfl
+  · have hs := s_alpha_d_eq_sr_succ d h
     rw [hs, ad_one_eq_degree_le]
     refine ⟨?_, ?_⟩
     · simp [getDegree_sr]
@@ -227,6 +235,7 @@ lemma s_alpha_d_maximal (d : Degree) (p : d.a ≠ d.b) :
           exact (lt_iff_length_lt _ _).mp hlt
         · right
           exact heq
+      clear hs hv_le
       cases v with
       | r n =>
         rw [length_sr_abs, length_r] at hv_cmp

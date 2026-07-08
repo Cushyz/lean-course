@@ -25,26 +25,23 @@ lemma r1_in_D :
 lemma r_zpow_in_D : ∀ k : ℤ, r (k : ZMod 0) ∈ (Subgroup.closure ({sr (0 : ZMod 0),
   sr (1 : ZMod 0)} : Set (DihedralGroup 0))) := by
   intro k
-  have h_r1 := r1_in_D
-  have : (r (1 : ZMod 0)) ^ (k : _) = r (k : ZMod 0) := by simp only [r_zpow, one_mul, r.injEq]; rfl
-  rw [← this]
-  exact Subgroup.zpow_mem _ h_r1 (k : _)
+  have h : (r (1 : ZMod 0)) ^ (k : _) = r (k : ZMod 0) := by simp only [r_zpow, one_mul, r.injEq]; rfl
+  rw [← h]
+  exact Subgroup.zpow_mem _ r1_in_D (k : _)
 
 lemma sri_in_D : ∀ i : ZMod 0, sr i ∈ (Subgroup.closure ({sr (0 : ZMod 0),
   sr (1 : ZMod 0)} : Set (DihedralGroup 0))) := by
   intro i
-  have : sr (0 : ZMod 0) * r (i : ZMod 0) = sr i := by simp only [sr_mul_r, zero_add]
-  have hk := r_zpow_in_D (i : ℤ)
-  rw [← this]
-  exact Subgroup.mul_mem _ (Subgroup.subset_closure (Set.mem_insert _ _)) hk
+  have h : sr (0 : ZMod 0) * r (i : ZMod 0) = sr i := by simp only [sr_mul_r, zero_add]
+  rw [← h]
+  exact Subgroup.mul_mem _ (Subgroup.subset_closure (Set.mem_insert _ _)) (r_zpow_in_D (i : ℤ))
 
 theorem gen_by_sr0_sr1 :
   (Subgroup.closure ({sr (0 : ZMod 0), sr (1 : ZMod 0)} : Set (DihedralGroup 0))) = ⊤ := by
-  apply eq_top_iff.mpr
-  intro g
-  cases g with
-  | r a => intro g; exact r_zpow_in_D (a : ℤ)
-  | sr b => intro g; exact sri_in_D b
+  rw [eq_top_iff]
+  rintro (a | b) -
+  · exact r_zpow_in_D (a : ℤ)
+  · exact sri_in_D b
 
 def s0 : D∞ := sr (0 : ZMod 0)
 def s1 : D∞ := sr (1 : ZMod 0)
@@ -65,8 +62,7 @@ lemma f_sq_one (i : Fin 2) : (f i) * (f i) = 1 := by
 lemma f_is_liftable : M.IsLiftable f := by
   intro i j
   simp only [M, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_fin_one]
-  fin_cases i <;> fin_cases j
-  all_goals decide
+  fin_cases i <;> fin_cases j <;> decide
 
 def φ : M.Group →* D∞ := (M.toCoxeterSystem).lift ⟨f, f_is_liftable⟩
 
@@ -75,41 +71,13 @@ def s1m := M.simple (1 : Fin 2)
 def cs' := M.toCoxeterSystem
 
 lemma conj_eq_inv {z : ℤ} : s0m * (s0m * s1m)^ z * s0m =( (s0m * s1m)⁻¹)^ z := by
-  have ss0 := cs'.simple_sq (0 : Fin 2)
-  have ss1 := cs'.simple_sq (1 : Fin 2)
-  have h1 : s0m * (s0m * s1m) * s0m = (s0m * s1m)⁻¹ := by
-    calc s0m * (s0m * s1m) * s0m = (s0m * s0m) * s1m * s0m := by group
-      _ = 1 * s1m * s0m := by congr
-      _ = s1m * s0m := by simp
-      _ = (s0m * s1m)⁻¹ := by
-        group
-        simp_all only [Fin.isValue, CoxeterMatrix.toCoxeterSystem_simple,
-          Int.reduceNeg, zpow_neg, zpow_one, cs']
-        congr
-        · symm; exact inv_eq_of_mul_eq_one_left ss1
-        · symm; exact inv_eq_of_mul_eq_one_left ss0
-  induction z using Int.induction_on with
-  | zero => simp only [zpow_zero, mul_one]; exact ss0
-  | succ n ih =>
-      calc s0m * (s0m * s1m) ^ (n + 1) * s0m
-    _ = s0m * (s0m * s1m) ^ n * (s0m * s1m) * s0m := by rw [pow_succ];group
-    _ = s0m * (s0m * s1m) ^ n *(s0m * s0m) * (s0m * s1m) * s0m := by
-      rw [show s0m *s0m = 1 by exact ss0, mul_one]
-    _ = (s0m * (s0m * s1m) ^ n *s0m) * (s0m * (s0m * s1m) * s0m) := by group
-    _ = (s0m * s1m)⁻¹ ^ (n + 1) := by
-      simp only [zpow_natCast, mul_inv_rev, h1] at ih ⊢;rw [ih, pow_succ]
-  | pred n ih =>
-    calc s0m * (s0m * s1m) ^ (-(n : ℤ)- 1) * s0m
-    _ = s0m * (s0m * s1m) ^ (-(n : ℤ)) * (s0m * s1m)⁻¹ * s0m := by rw [zpow_sub];group
-    _ = s0m * (s0m * s1m) ^ (-(n : ℤ)) *(s0m * s0m) * (s0m * s1m)⁻¹ * s0m := by
-      rw [show s0m *s0m = 1 by exact ss0, mul_one]
-    _ = (s0m * (s0m * s1m) ^ (-(n : ℤ)) * s0m) * s0m * (s0m * s1m)⁻¹ * s0m := by group
-    _ = (s0m * s1m)⁻¹ ^ (-(n : ℤ)) * s0m * (s0m * (s0m * s1m) * s0m) * s0m := by
-      rw [ih]; congr; rw [← h1]
-    _ = (s0m * s1m)⁻¹ ^ (-(n : ℤ)) * (s0m * s0m) * (s0m * s1m) * (s0m * s0m) := by group
-    _ = (s0m * s1m)⁻¹ ^ (-(n : ℤ)) * (s0m * s1m) := by
-      rw [show s0m *s0m = 1 by exact ss0, mul_one, mul_one]
-    _ = (s0m * s1m)⁻¹ ^ (-(n : ℤ) - 1) := by rw [zpow_sub];congr
+  have e0 : s0m * s0m = 1 := cs'.simple_sq (0 : Fin 2)
+  have e1 : s1m * s1m = 1 := cs'.simple_sq (1 : Fin 2)
+  have hs0 : s0m⁻¹ = s0m := inv_eq_of_mul_eq_one_right e0
+  have hs1 : s1m⁻¹ = s1m := inv_eq_of_mul_eq_one_right e1
+  have h1 : s0m * (s0m * s1m) * s0m⁻¹ = (s0m * s1m)⁻¹ := by
+    rw [hs0, mul_inv_rev, hs0, hs1, ← mul_assoc, e0, one_mul]
+  rw [← h1, conj_zpow, hs0]
 
 def ψ : D∞ →* M.Group where
   toFun x := match x with
