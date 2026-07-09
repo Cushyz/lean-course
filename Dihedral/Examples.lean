@@ -15,6 +15,15 @@ example : (1 : D∞) —[α0]→ (cs.simple 0) := by
 example : CurveNeighborhood 1 {a := 2, b := 2} = { s0s1_pow 2, s1s0_pow 2 } := by
   rw [curve_nbhd_one_diag {a := 2, b := 2} rfl]
 
+/-- Certified balanced identity instance, beyond the smallest displayed example. -/
+example : CurveNeighborhood 1 {a := 3, b := 3} = { s0s1_pow 3, s1s0_pow 3 } := by
+  rw [curve_nbhd_one_diag {a := 3, b := 3} rfl]
+
+/-- Certified unbalanced identity instance. -/
+example : CurveNeighborhood 1 {a := 2, b := 3} = { s_alpha_d {a := 2, b := 3} } := by
+  rw [curve_nbhd_one_offdiag]
+  norm_num
+
 lemma curveNeighborhood_s0_23 :
     CurveNeighborhood s0 {a := 2, b := 3} = {s0 * s_alpha_d {a := 2, b := 3}} := by
   rw [main_theorem s0 {a := 2, b := 3}]
@@ -45,6 +54,19 @@ example : s0s1_pow 2 ∈ CurveNeighborhood_computable 1 ⟨2, 2⟩ := by
   rw [mem_CurveNeighborhood_computable_iff]
   rw [curve_nbhd_one_diag {a := 2, b := 2} rfl]
   simp
+
+/-- Certified translated rotation-base computation. -/
+example : CurveNeighborhood_computable s0 ⟨2, 3⟩ = {r (3 : ℤ)} := by
+  native_decide
+
+/-- Certified translated reflection-base computation. -/
+example : CurveNeighborhood_computable s1 ⟨3, 3⟩ = {sr (4 : ℤ)} := by
+  native_decide
+
+/-- The search space used by the computable model has the advertised linear bound. -/
+example (u : Vertex) (d : Degree) :
+    (Ad_finset u d).card ≤ 2 * (d.a + d.b + 2) :=
+  card_Ad_finset_le u d
 
 example : s0 * s_alpha_d {a := 2, b := 3} ∈
     CurveNeighborhood_computable s0 ⟨2, 3⟩ := by

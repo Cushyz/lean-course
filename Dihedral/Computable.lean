@@ -22,6 +22,21 @@ def enumerateD_list (n : ℕ) : List D∞ :=
 def enumerateD (n : ℕ) : Finset D∞ :=
   (enumerateD_list n).toFinset
 
+/-- The raw alternating-word enumeration has linear size in the length bound. -/
+@[simp]
+lemma length_enumerateD_list (n : ℕ) :
+    (enumerateD_list n).length = 2 * (n + 1) := by
+  simp [enumerateD_list, Nat.mul_comm]
+
+/-- The finite search space used by `enumerateD` is linearly bounded. -/
+lemma card_enumerateD_le (n : ℕ) :
+    (enumerateD n).card ≤ 2 * (n + 1) := by
+  unfold enumerateD
+  calc
+    (enumerateD_list n).toFinset.card ≤ (enumerateD_list n).length := by
+      exact List.toFinset_card_le _
+    _ = 2 * (n + 1) := length_enumerateD_list n
+
 lemma wordProd_alternating_mem_enumerateD {i j : Fin 2} {m n : ℕ}
     (hij : i ≠ j) (hmn : m ≤ n) :
     cs.wordProd (alternatingWord i j m) ∈ enumerateD n := by
@@ -58,6 +73,17 @@ theorem coe_Ad_finset (u : Vertex) (d : Degree) :
     (Ad_finset u d : Set Vertex) = Ad u d := by
   ext v
   exact mem_Ad_finset_iff
+
+/-- The verified search space for `Ad_finset` is linear in the degree bound. -/
+lemma card_Ad_finset_le (u : Vertex) (d : Degree) :
+    (Ad_finset u d).card ≤ 2 * (d.a + d.b + 2) := by
+  unfold Ad_finset
+  calc
+    ((enumerateD (d.a + d.b + 1)).filter
+        (fun v => cLength (u * v) = cLength u + cLength v ∧ φ v ≤ d)).card
+        ≤ (enumerateD (d.a + d.b + 1)).card := Finset.card_filter_le _ _
+    _ ≤ 2 * ((d.a + d.b + 1) + 1) := card_enumerateD_le _
+    _ = 2 * (d.a + d.b + 2) := by ring
 
 def CurveNeighborhood_computable (u : Vertex) (d : Degree) : Finset Vertex :=
   let A := Ad_finset u d
