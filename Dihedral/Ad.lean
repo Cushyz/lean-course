@@ -15,85 +15,20 @@ private lemma sr_length_abs_lt_pos_candidate {n p : ZMod 0} {a : ℕ}
     have hnp : (((n.cast : ℤ) : ZMod 0) = ((p.cast : ℤ) : ZMod 0)) := by
       simp [hc, hp]
     exact (ZMod.intCast_zmod_cast n).symm.trans (hnp.trans (ZMod.intCast_zmod_cast p))
-  by_cases hpos : 0 < (n.cast : ℤ)
-  · apply Int.ofNat_lt.mp
-    rw [Int.natAbs_of_nonneg (by omega)]
-    have hleftz : (n.cast : ℤ) - 1 ≤ (a : ℤ) := by
-      calc
-        (n.cast : ℤ) - 1 = ((((n.cast : ℤ) - 1).natAbs : ℕ) : ℤ) := by
-          rw [Int.natAbs_of_nonneg (by omega)]
-        _ ≤ (a : ℤ) := by exact_mod_cast hleft
-    have hnle : (n.cast : ℤ) ≤ (a : ℤ) := by omega
-    omega
-  · have hn_nonpos : (n.cast : ℤ) ≤ 0 := by omega
-    apply Int.ofNat_lt.mp
-    have hlen : (((2 * (n.cast : ℤ) - 1).natAbs : ℕ) : ℤ) =
-        -(2 * (n.cast : ℤ) - 1) := by
-      calc
-        (((2 * (n.cast : ℤ) - 1).natAbs : ℕ) : ℤ)
-            = (((-(2 * (n.cast : ℤ) - 1)).natAbs : ℕ) : ℤ) := by
-              rw [Int.natAbs_neg]
-        _ = -(2 * (n.cast : ℤ) - 1) := Int.natAbs_of_nonneg (by omega)
-    rw [hlen]
-    have hleftz : -((n.cast : ℤ) - 1) ≤ (a : ℤ) := by
-      calc
-        -((n.cast : ℤ) - 1) = ((((n.cast : ℤ) - 1).natAbs : ℕ) : ℤ) := by
-          calc
-            -((n.cast : ℤ) - 1) =
-                (((-((n.cast : ℤ) - 1)).natAbs : ℕ) : ℤ) := by
-                  rw [Int.natAbs_of_nonneg (by omega)]
-            _ = ((((n.cast : ℤ) - 1).natAbs : ℕ) : ℤ) := by
-                  rw [Int.natAbs_neg]
-        _ ≤ (a : ℤ) := by exact_mod_cast hleft
-    omega
+  omega
 
 private lemma sr_length_abs_lt_neg_candidate {n p : ZMod 0} {b : ℕ}
     (hp : (p.cast : ℤ) = -(b : ℤ))
     (hright : (n.cast : ℤ).natAbs ≤ b) (hne : n ≠ p) :
     (2 * (n.cast : ℤ) - 1).natAbs < (2 * (p.cast : ℤ) - 1).natAbs := by
-  have hp_len : (2 * (p.cast : ℤ) - 1).natAbs = 2 * b + 1 := by
-    rw [hp]
-    apply Nat.cast_injective (R := ℤ)
-    calc
-      (((2 * (-(b : ℤ)) - 1).natAbs : ℕ) : ℤ)
-          = (((-(2 * (-(b : ℤ)) - 1)).natAbs : ℕ) : ℤ) := by
-            rw [Int.natAbs_neg]
-      _ = -(2 * (-(b : ℤ)) - 1) := Int.natAbs_of_nonneg (by omega)
-      _ = ((2 * b + 1 : ℕ) : ℤ) := by norm_num; omega
-  rw [hp_len]
   have hn_cast_ne : (n.cast : ℤ) ≠ -(b : ℤ) := by
     intro hc
     apply hne
     have hnp : (((n.cast : ℤ) : ZMod 0) = ((p.cast : ℤ) : ZMod 0)) := by
       simp [hc, hp]
     exact (ZMod.intCast_zmod_cast n).symm.trans (hnp.trans (ZMod.intCast_zmod_cast p))
-  by_cases hpos : 0 < (n.cast : ℤ)
-  · apply Int.ofNat_lt.mp
-    rw [Int.natAbs_of_nonneg (by omega)]
-    have hrightz : (n.cast : ℤ) ≤ (b : ℤ) := by
-      calc
-        (n.cast : ℤ) = (((n.cast : ℤ).natAbs : ℕ) : ℤ) := by
-          rw [Int.natAbs_of_nonneg (by omega)]
-        _ ≤ (b : ℤ) := by exact_mod_cast hright
-    omega
-  · have hn_nonpos : (n.cast : ℤ) ≤ 0 := by omega
-    apply Int.ofNat_lt.mp
-    have hlen : (((2 * (n.cast : ℤ) - 1).natAbs : ℕ) : ℤ) =
-        -(2 * (n.cast : ℤ) - 1) := by
-      calc
-        (((2 * (n.cast : ℤ) - 1).natAbs : ℕ) : ℤ)
-            = (((-(2 * (n.cast : ℤ) - 1)).natAbs : ℕ) : ℤ) := by
-              rw [Int.natAbs_neg]
-        _ = -(2 * (n.cast : ℤ) - 1) := Int.natAbs_of_nonneg (by omega)
-    rw [hlen]
-    have hrightz : -(n.cast : ℤ) ≤ (b : ℤ) := by
-      calc
-        -(n.cast : ℤ) = (((-(n.cast : ℤ)).natAbs : ℕ) : ℤ) := by
-          rw [Int.natAbs_of_nonneg (by omega)]
-        _ = (((n.cast : ℤ).natAbs : ℕ) : ℤ) := by rw [Int.natAbs_neg]
-        _ ≤ (b : ℤ) := by exact_mod_cast hright
-    have hlt_abs : -(n.cast : ℤ) < (b : ℤ) := by omega
-    omega
+  rw [hp]
+  omega
 
 -- (Reachable Set)
 def ReachableSet (u : Vertex) (d : Degree) : Set Vertex :=
@@ -102,15 +37,15 @@ def ReachableSet (u : Vertex) (d : Degree) : Set Vertex :=
 def IsMaximalIn (v : Vertex) (S : Set Vertex) : Prop :=
   v ∈ S ∧ ∀ v' ∈ S, v ≤ v' → v = v'
 
--- 定义 CurveNeighborhood
+-- Definition of CurveNeighborhood
 def CurveNeighborhood (u : Vertex) (d : Degree) : Set Vertex :=
   { v | IsMaximalIn v (ReachableSet u d) }
 
--- 定义集合 A_d(u)
+-- Definition of the set A_d(u)
 def Ad (u : Vertex) (d : Degree) : Set Vertex :=
   { v |  ℓ (u * v) = ℓ u +  ℓ v ∧ φ v ≤ d }
 
--- 定义集合 S 中的极大元子集
+-- The subset of maximal elements of a set S
 def maximalElements (S : Set Vertex) : Set Vertex :=
   { v | IsMaximalIn v S }
 
@@ -123,29 +58,8 @@ private lemma sr_additive_same_abs_eq {nu nx ny : ℤ}
       (if 0 < nu then 2 * nu.natAbs - 1 else 2 * nu.natAbs + 1) + 2 * ny.natAbs)
     (h_abs : nx.natAbs = ny.natAbs) :
     nx = ny := by
-  rcases Int.natAbs_eq nx with hnx | hnx
-  case inl =>
-    rcases Int.natAbs_eq ny with hny | hny
-    case inl =>
-      rw [hnx, hny]
-      exact_mod_cast h_abs
-    case inr =>
-      rw [hnx] at hv
-      rw [h_abs] at hv
-      rw [hny] at hw
-      rw [hnx, hny, h_abs]
-      split_ifs at hv hw <;> omega
-  case inr =>
-    rcases Int.natAbs_eq ny with hny | hny
-    case inl =>
-      rw [hnx] at hv
-      rw [h_abs] at hv
-      rw [hny] at hw
-      rw [hnx, hny, h_abs]
-      split_ifs at hv hw <;> omega
-    case inr =>
-      rw [hnx, hny]
-      omega
+  have hvw := hv.trans hw.symm
+  split_ifs at hvw <;> omega
 
 private lemma sr_reflection_additive_same_odd_abs_eq {nu nx ny : ℤ}
     (hw : 2 * Int.natAbs (ny - nu) =
@@ -154,21 +68,7 @@ private lemma sr_reflection_additive_same_odd_abs_eq {nu nx ny : ℤ}
       (2 * nu - 1).natAbs + (2 * nx - 1).natAbs)
     (h_abs : (2 * nx - 1).natAbs = (2 * ny - 1).natAbs) :
     nx = ny := by
-  have hsq := Int.natAbs_eq_iff_sq_eq.mp h_abs
-  rcases eq_or_eq_neg_of_sq_eq_sq (2 * nx - 1) (2 * ny - 1) hsq with heq | hneg
-  case inl =>
-    omega
-  case inr =>
-    have hny_eq : ny = 1 - nx := by omega
-    rw [hny_eq] at hw
-    rw [hny_eq]
-    rcases Int.natAbs_eq nx with hnx | hnx
-    case inl =>
-      rw [hnx] at hv hw
-      omega
-    case inr =>
-      rw [hnx] at hv hw
-      omega
+  omega
 
 private lemma r_additive_same_abs_eq {nu nx ny : ℤ}
     (hnu : nu ≠ 0)
@@ -176,61 +76,7 @@ private lemma r_additive_same_abs_eq {nu nx ny : ℤ}
     (hv : 2 * Int.natAbs (nu + nx) = 2 * nu.natAbs + 2 * nx.natAbs)
     (h_abs : nx.natAbs = ny.natAbs) :
     nx = ny := by
-  have hnu_abs_pos : 0 < (nu.natAbs : ℤ) := by
-    have hnat : 0 < nu.natAbs := by
-      exact Nat.pos_of_ne_zero (by
-        intro hz
-        exact hnu (Int.natAbs_eq_zero.mp hz))
-    exact_mod_cast hnat
-  rcases Int.natAbs_eq nu with hnu_pos | hnu_neg
-  case inl =>
-    rcases Int.natAbs_eq nx with hnx | hnx
-    case inl =>
-      rcases Int.natAbs_eq ny with hny | hny
-      case inl =>
-        rw [hnx, hny]
-        exact_mod_cast h_abs
-      case inr =>
-        rw [hnu_pos, hnx] at hv
-        rw [h_abs] at hv
-        rw [hnu_pos, hny] at hw
-        rw [hnx, hny, h_abs]
-        omega
-    case inr =>
-      rcases Int.natAbs_eq ny with hny | hny
-      case inl =>
-        rw [hnu_pos, hnx] at hv
-        rw [h_abs] at hv
-        rw [hnu_pos, hny] at hw
-        rw [hnx, hny, h_abs]
-        omega
-      case inr =>
-        rw [hnx, hny]
-        omega
-  case inr =>
-    rcases Int.natAbs_eq nx with hnx | hnx
-    case inl =>
-      rcases Int.natAbs_eq ny with hny | hny
-      case inl =>
-        rw [hnx, hny]
-        exact_mod_cast h_abs
-      case inr =>
-        rw [hnu_neg, hnx] at hv
-        rw [h_abs] at hv
-        rw [hnu_neg, hny] at hw
-        rw [hnx, hny, h_abs]
-        omega
-    case inr =>
-      rcases Int.natAbs_eq ny with hny | hny
-      case inl =>
-        rw [hnu_neg, hnx] at hv
-        rw [h_abs] at hv
-        rw [hnu_neg, hny] at hw
-        rw [hnx, hny, h_abs]
-        omega
-      case inr =>
-        rw [hnx, hny]
-        omega
+  omega
 
 private lemma r_reflection_additive_same_odd_abs_eq {nu nx ny : ℤ}
     (hnu : nu ≠ 0)
@@ -240,41 +86,9 @@ private lemma r_reflection_additive_same_odd_abs_eq {nu nx ny : ℤ}
       2 * nu.natAbs + (2 * nx - 1).natAbs)
     (h_abs : (2 * nx - 1).natAbs = (2 * ny - 1).natAbs) :
     nx = ny := by
-  have hnu_abs_pos : 0 < (nu.natAbs : ℤ) := by
-    have hnat : 0 < nu.natAbs := by
-      exact Nat.pos_of_ne_zero (by
-        intro hz
-        exact hnu (Int.natAbs_eq_zero.mp hz))
-    exact_mod_cast hnat
-  have hsq := Int.natAbs_eq_iff_sq_eq.mp h_abs
-  rcases eq_or_eq_neg_of_sq_eq_sq (2 * nx - 1) (2 * ny - 1) hsq with heq | hneg
-  case inl =>
-    omega
-  case inr =>
-    have hny_eq : ny = 1 - nx := by omega
-    rw [hny_eq] at hw
-    rw [hny_eq]
-    rcases Int.natAbs_eq nu with hnu_pos | hnu_neg
-    case inl =>
-      rw [hnu_pos] at hv hw
-      rcases Int.natAbs_eq nx with hnx | hnx
-      case inl =>
-        rw [hnx] at hv hw
-        omega
-      case inr =>
-        rw [hnx] at hv hw
-        omega
-    case inr =>
-      rw [hnu_neg] at hv hw
-      rcases Int.natAbs_eq nx with hnx | hnx
-      case inl =>
-        rw [hnx] at hv hw
-        omega
-      case inr =>
-        rw [hnx] at hv hw
-        omega
+  omega
 
---欲证明有限集
+-- Length bound used to prove that Ad is finite
 lemma h_len_bound : ∀ v ∈ Ad u d, ℓ v ≤ d.a + d.b + 1 := by
     intro v hv
     obtain ⟨h, h_deg⟩ := hv
@@ -349,13 +163,14 @@ lemma h_chain {u : Vertex} (h : u ≠ 1) : IsChain (· ≤ ·) (Ad u d) := by
   | sr nu =>
     rcases x with ⟨nx⟩ | ⟨nx⟩ <;>
     rcases y with ⟨ny⟩ | ⟨ny⟩
-    · simp_all
+    · simp_all only [sr_mul_r, length_sr, length_r, r.injEq, mul_eq_mul_left_iff,
+        OfNat.ofNat_ne_zero, or_false]
       intro h_abs
-      simp_all
+      rw [h_abs] at hv
       change ℤ at *
       exact hxy (sr_additive_same_abs_eq hw hv h_abs)
-    · simp_all; grind
-    · simp_all; grind
+    · rw [length_r, length_sr_abs]; omega
+    · rw [length_r, length_sr_abs]; omega
     · simp only [sr_mul_sr] at hv hw
       rw [length_sr_abs, length_sr_abs, length_r] at hv hw
       rw [length_sr_abs, length_sr_abs]
@@ -375,8 +190,8 @@ lemma h_chain {u : Vertex} (h : u ≠ 1) : IsChain (· ≤ ·) (Ad u d) := by
       change ℤ at *
       intro h_abs
       exact hxy (r_additive_same_abs_eq nun0 hw hv h_abs)
-    · simp_all; grind
-    · simp_all; grind
+    · rw [length_r, length_sr_abs]; omega
+    · rw [length_r, length_sr_abs]; omega
     · simp only [r_mul_sr] at hv hw
       rw [length_sr_abs, length_sr_abs, length_r] at hv hw
       rw [length_sr_abs, length_sr_abs]
@@ -420,199 +235,59 @@ theorem exists_unique_max_ad_ne_one (u : Vertex) (d : Degree) :
 lemma ad_one_eq_degree_le (d : Degree) : Ad 1 d = {x : Vertex | φ x ≤ d} := by
   simp [Ad, one_mul]
 
+-- If `p` is strictly longer than every other element of `A_1(d)`, then `p` is
+-- the unique maximal element. (extracted by Fuse golfer)
+private lemma existsUnique_maximalIn_of_len_dominant {d : Degree} (p : Vertex)
+    (hmem : φ p ≤ d) (hdom : ∀ v : Vertex, φ v ≤ d → v ≠ p → ℓ v < ℓ p) :
+    ∃! v, IsMaximalIn v (Ad 1 d) := by
+  rw [ad_one_eq_degree_le]
+  refine ⟨p, ⟨hmem, ?_⟩, ?_⟩
+  · intro v hv hv_le
+    rcases le_iff_lt_or_eq.mp hv_le with hlt | heq
+    · exact (lt_asymm ((lt_iff_length_lt _ _).mp hlt) (hdom v hv (ne_of_gt hlt))).elim
+    · exact heq
+  · rintro y ⟨hyin, hymax⟩
+    by_cases hy : y = p
+    · exact hy
+    · exact hymax p hmem (le_of_lt ((lt_iff_length_lt _ _).mpr (hdom y hyin hy)))
+
 theorem exists_unique_max_ad_one_neq (d : Degree) :
      (d.a ≠ d.b) → ∃! v, IsMaximalIn v (Ad 1 d) := by
       intro ne
       rcases d with ⟨a, b⟩
-      dsimp [IsMaximalIn]
       rw [Nat.ne_iff_lt_or_gt] at ne
-      simp only [ad_one_eq_degree_le]
       rcases ne with h | h
-      · -- a < b. v = sr (-(b)). a = b or a < b.
-        -- But root ⟨b+1, b⟩ => s_alpha = sr (-b)
-        use s_α ⟨a, a + 1, Or.inr rfl⟩ -- Wait, if a < b, maximal is in terms of b?
-        -- If a < b, maximal element is sr (a+1) (k>0) or sr (-b) (k<=0)?
-        -- Let's check degrees.
-        -- φ (sr k) = (|k-1|, |k|) if k>0; (|k|+1, |k|) if k<=0.
-        -- We want (x, y) <= (a, b).
-        -- If k > 0: |k-1| <= a, |k| <= b.
-        -- Max possible k: |k| <= b. If k=b, |b-1| = b-1. If b-1 <= a?
-        -- Given a < b. b-1 could be a.
-        -- If k <= 0: |k|+1 <= a, |k| <= b. |k| <= a-1.
-        -- Max length ~ 2*deg.
-        -- Let's stick to the structure.
-        -- If a < b, max element is s_alpha_d corresponding to a
-        -- actually s_alpha_d is defined by comparing a and b.
-        -- If a < b, root is <a, a+1> -> sr (a+1).
-        -- Check degree sr (a+1): <a, a+1>. fits if a+1 <= b.
-        -- Yes, a < b => a+1 <= b.
-        -- So v = sr (a+1).
-        --use s_α ⟨a, a + 1, Or.inr rfl⟩
-        simp only at h
-        have h': a + 1 ≤ b := by omega
-        simp only [Degreele_le_def, s_α, gt_iff_lt, add_lt_iff_neg_left, _root_.not_lt_zero,
-          ↓reduceIte, Fin.isValue, show a + (a + 1) = 2 * a + 1 by omega, Set.mem_setOf_eq,
-          getDegree_alternating_0_odd a, le_refl, h', and_self, and_imp, true_and]
-        -- s_α uses wordProd alternatingWord.
-        -- For <a, a+1>, it's alternatingWord 0 1 (2a+1).
-        rw [cs.prod_alternatingWord_eq_mul_pow 0 1 (2*a+1)]
-        have h_div : (2 * a + 1) / 2 = a := by omega
-        simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr,
-          sub_zero, h_div, r_pow, one_mul, sr_mul_r]
-        split_ands
-        · intro v h1 h2 h3
-          let a' := (a : ℤ)
-          have h3 : ( ℓ (sr (1 + a)) < ℓ v) ∨ (sr (1 + a : ℕ) = v) := by
-            simp only[← lt_iff_length_lt] ; exact h3
+      · -- a < b. Unique maximal element is `sr (a + 1)`.
+        have hp_cast : ((((a : ℤ) + 1 : ℤ) : ZMod 0).cast : ℤ) = (a : ℤ) + 1 :=
+          zmod0_natCast_add_one_cast a
+        refine existsUnique_maximalIn_of_len_dominant (sr (((a : ℤ) + 1 : ℤ) : ZMod 0)) ?_ ?_
+        · have h₂ : a < b := h
+          simp [getDegree_sr, Degreele_le_def]; omega
+        · intro v hv hne
           cases v with
           | r n =>
-            rw [length_sr_abs, length_r] at h3
+            rw [length_r, length_sr_abs]
             simp_all [getDegree_r]
             omega
           | sr n =>
-            repeat rw [length_sr_abs] at h3
-            simp_all only [getDegree_sr, cast_add, cast_one, sr.injEq]
-            by_contra hne
-            simp [hne] at h3
-            let q : ZMod 0 := (1 + (a : ℤ) : ℤ)
-            have hq_cast : (q.cast : ℤ) = (a : ℤ) + 1 := by
-              dsimp [q]
-              rw [show 1 + (a : ℤ) = (a : ℤ) + 1 by omega]
-              exact zmod0_natCast_add_one_cast a
-            have hnq : n ≠ q := by
-              intro hnq
-              apply hne
-              exact hnq.symm
-            have hlt := sr_length_abs_lt_pos_candidate (n := n) (p := q) hq_cast h1 hnq
-            have hq_len :
-                (2 * (q.cast : ℤ) - 1).natAbs =
-                  (2 * (1 + (a : ℤ)) - 1).natAbs := by
-              apply congrArg Int.natAbs
-              rw [hq_cast]
-              omega
-            rw [hq_len] at hlt
-            exact (not_lt_of_gt hlt h3)
-        · intro v h1 h2 h3
-          let p : ZMod 0 := ((a : ℤ) + 1 : ℤ)
-          have hp_cast : (p.cast : ℤ) = (a : ℤ) + 1 := by
-            dsimp [p]
-            exact zmod0_natCast_add_one_cast a
-          have hp_deg_left : ((p.cast : ℤ) - 1).natAbs ≤ a := by
-            rw [hp_cast]
-            simp
-          have hp_deg_right : (p.cast : ℤ).natAbs ≤ b := by
-            rw [hp_cast]
-            exact_mod_cast h'
+            simp only [Degreele_le_def, getDegree_sr] at hv
+            rw [length_sr_abs, length_sr_abs]
+            exact sr_length_abs_lt_pos_candidate hp_cast hv.1 (fun hh => hne (congrArg sr hh))
+      · -- a > b. Unique maximal element is `sr (-b)`.
+        have hp_cast : (((-(b : ℤ) : ℤ) : ZMod 0).cast : ℤ) = -(b : ℤ) := zmod0_neg_natCast_cast b
+        refine existsUnique_maximalIn_of_len_dominant (sr ((-(b : ℤ) : ℤ) : ZMod 0)) ?_ ?_
+        · have h₂ : b < a := h
+          simp [getDegree_sr, Degreele_le_def]; omega
+        · intro v hv hne
           cases v with
           | r n =>
-            simp_all only [getDegree_r, reduceCtorEq]
-            specialize h3 (sr p)
-            simp_all only [getDegree_sr, add_sub_cancel_right, Int.natAbs_natCast, le_refl,
-              reduceCtorEq, imp_false, forall_const]
-            have hlt : ℓ (r n) < ℓ (sr p) := by
-              rw [length_r, length_sr_abs]
-              rw [hp_cast, natAbs_two_mul_nat_add_one]
-              exact Nat.lt_of_le_of_lt (Nat.mul_le_mul_left 2 h1) (by omega)
-            exact h3 (le_of_lt ((lt_iff_length_lt _ _).mpr hlt))
-          | sr n =>
-            specialize h3 (sr p)
-            simp_all only [getDegree_sr, add_sub_cancel_right, Int.natAbs_natCast, le_refl,
-              sr.injEq, forall_const]
-            rw [add_comm]
-            by_cases hn : n = p
-            · exact hn
-            have hlt : ℓ (sr n) < ℓ (sr p) := by
-              rw [length_sr_abs, length_sr_abs]
-              exact sr_length_abs_lt_pos_candidate hp_cast h1 hn
-            exact h3 (le_of_lt ((lt_iff_length_lt _ _).mpr hlt))
-      · -- a > b. v = sr (-b).
-        use s_α ⟨b + 1, b, Or.inl rfl⟩
-        simp only at h
-        have h' : b + 1 ≤ a := by linarith
-        simp only [Degreele_le_def, s_α, gt_iff_lt, lt_add_iff_pos_right, zero_lt_one, ↓reduceIte,
-          Fin.isValue, show b + 1 + b = 2 * b + 1 by omega, Set.mem_setOf_eq,
-          getDegree_alternating_1_odd b, h', le_refl, and_self, and_imp, true_and]
-        rw [cs.prod_alternatingWord_eq_mul_pow 1 0 (2*b+1)]
-        have h_div : (2 * b + 1) / 2 = b := by omega
-        simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr,
-          zero_sub, h_div, r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
-        split_ands
-        · intro v h1 h2 h3
-          have h3 : ( ℓ (sr (-(b:ℤ))) < ℓ v) ∨ (sr (-(b:ℤ)) = v) := by
-            rw [← lt_iff_length_lt] ; exact h3
-          cases v with
-          | r n =>
-            rw [length_sr_abs, length_r] at h3
+            rw [length_r, length_sr_abs]
             simp_all [getDegree_r]
             omega
           | sr n =>
-            repeat rw [length_sr_abs] at h3
-            simp_all only [getDegree_sr, sr.injEq]
-            by_contra hne
-            simp at h3
-            let q : ZMod 0 := (-(b : ℤ) : ℤ)
-            have hq_cast : (q.cast : ℤ) = -(b : ℤ) := by
-              dsimp [q]
-              exact zmod0_neg_natCast_cast b
-            have hnq : n ≠ q := by
-              intro hnq
-              apply hne
-              exact hnq.symm
-            have hlt := sr_length_abs_lt_neg_candidate (n := n) (p := q) hq_cast h2 hnq
-            have hq_len :
-                (2 * (q.cast : ℤ) - 1).natAbs =
-                  (2 * (-(b : ℤ)) - 1).natAbs := by
-              apply congrArg Int.natAbs
-              rw [hq_cast]
-            rw [hq_len] at hlt
-            rcases h3 with h3 | heq
-            · have h3' :
-                  (2 * (-(b : ℤ)) - 1).natAbs < (2 * (n.cast : ℤ) - 1).natAbs := by
-                simpa using h3
-              exact (not_lt_of_gt hlt h3')
-            · exact hne heq
-        · intro v h1 h2 h3
-          let p : ZMod 0 := (-(b : ℤ) : ℤ)
-          have hp_cast : (p.cast : ℤ) = -(b : ℤ) := by
-            dsimp [p]
-            exact zmod0_neg_natCast_cast b
-          have hp_deg_left : ((p.cast : ℤ) - 1).natAbs ≤ a := by
-            rw [hp_cast]
-            have : (b : ℤ) + 1 ≤ (a : ℤ) := by exact_mod_cast h'
-            omega
-          have hp_deg_right : (p.cast : ℤ).natAbs ≤ b := by
-            rw [hp_cast]
-            simp
-          cases v with
-          | r n =>
-            simp_all only [getDegree_r, reduceCtorEq]
-            specialize h3 (sr p)
-            simp_all only [getDegree_sr, Int.natAbs_neg, Int.natAbs_natCast, le_refl, reduceCtorEq,
-              imp_false, forall_const]
-            have hlt : ℓ (r n) < ℓ (sr p) := by
-              rw [length_r, length_sr_abs]
-              have hp_len : (2 * (p.cast : ℤ) - 1).natAbs = 2 * b + 1 := by
-                rw [hp_cast]
-                apply Nat.cast_injective (R := ℤ)
-                calc
-                  (((2 * (-(b : ℤ)) - 1).natAbs : ℕ) : ℤ)
-                      = (((-(2 * (-(b : ℤ)) - 1)).natAbs : ℕ) : ℤ) := by
-                        rw [Int.natAbs_neg]
-                  _ = -(2 * (-(b : ℤ)) - 1) := Int.natAbs_of_nonneg (by omega)
-                  _ = ((2 * b + 1 : ℕ) : ℤ) := by norm_num; omega
-              rw [hp_len]
-              exact Nat.lt_of_le_of_lt (Nat.mul_le_mul_left 2 h2) (by omega)
-            exact h3 (le_of_lt ((lt_iff_length_lt _ _).mpr hlt))
-          | sr n =>
-            specialize h3 (sr p)
-            simp_all only [getDegree_sr, Int.natAbs_neg, Int.natAbs_natCast, le_refl, sr.injEq,
-              forall_const]
-            by_cases hn : n = p
-            · exact hn
-            have hlt : ℓ (sr n) < ℓ (sr p) := by
-              rw [length_sr_abs, length_sr_abs]
-              exact sr_length_abs_lt_neg_candidate hp_cast h2 hn
-            exact h3 (le_of_lt ((lt_iff_length_lt _ _).mpr hlt))
+            simp only [Degreele_le_def, getDegree_sr] at hv
+            rw [length_sr_abs, length_sr_abs]
+            exact sr_length_abs_lt_neg_candidate hp_cast hv.2 (fun hh => hne (congrArg sr hh))
 
 theorem max_ad_one_diag_iff_r_or_neg_r (a : ℕ) (v : Vertex) :
     let S := Ad 1 (Degree.mk a a)
@@ -632,19 +307,7 @@ theorem max_ad_one_diag_iff_r_or_neg_r (a : ℕ) (v : Vertex) :
         · exact le_trans (Nat.sub_le _ _) (Nat.mul_le_mul_left 2 h_deg.2)
       · have hk_nonpos : (k.cast : ℤ) ≤ 0 := le_of_not_gt h_pos
         have h_abs_sub : ((k.cast : ℤ) - 1).natAbs = (k.cast : ℤ).natAbs + 1 := by
-          apply Nat.cast_injective (R := ℤ)
-          calc
-            ((((k.cast : ℤ) - 1).natAbs : ℕ) : ℤ)
-                = (((-((k.cast : ℤ) - 1)).natAbs : ℕ) : ℤ) := by
-                  rw [Int.natAbs_neg]
-            _ = -((k.cast : ℤ) - 1) := Int.natAbs_of_nonneg (by omega)
-            _ = (-(k.cast : ℤ)) + 1 := by omega
-            _ = (((-(k.cast : ℤ)).natAbs : ℕ) : ℤ) + 1 := by
-                  rw [Int.natAbs_of_nonneg (by omega)]
-            _ = (((k.cast : ℤ).natAbs : ℕ) : ℤ) + 1 := by
-                  rw [Int.natAbs_neg]
-            _ = ((((k.cast : ℤ).natAbs + 1 : ℕ) : ℤ)) := by
-                  rw [Nat.cast_add, Nat.cast_one]
+          omega
         rw [h_abs_sub] at h_deg
         have hmul : 2 * ((k.cast : ℤ).natAbs + 1) ≤ 2 * a :=
           Nat.mul_le_mul_left 2 h_deg.1

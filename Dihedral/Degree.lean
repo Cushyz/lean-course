@@ -11,20 +11,18 @@ deriving DecidableEq
 def α0 : Root := ⟨1, 0, Or.inl rfl⟩
 def α1 : Root := ⟨0, 1, Or.inr rfl⟩
 
--- 根的长度为 a + b
+-- The length of a root is a + b
 def Root.length (α : Root) : ℕ := α.a + α.b
 
 notation "Λ" => CoxeterSystem.alternatingWord
 
 @[simp]
 lemma length_r (k : ℤ) : ℓ (r k) = 2 * k.natAbs := by
-  simp only [length_eq, reducedWord, ge_iff_le, Fin.isValue]
-  aesop
+  simp [length_eq, reducedWord, apply_ite List.length, CoxeterSystem.length_alternatingWord]
 
 @[simp]
 lemma length_sr (k : ℤ) : ℓ (sr k) = if k > 0 then 2 * k.natAbs - 1 else 2 * k.natAbs + 1 := by
-  simp only [length_eq, reducedWord, gt_iff_lt, Fin.isValue]
-  aesop
+  simp [length_eq, reducedWord, apply_ite List.length, CoxeterSystem.length_alternatingWord]
 
 lemma length_inv_eq (u : D∞) : ℓ u = ℓ u⁻¹ :=
   (cs.length_inv u).symm
@@ -48,23 +46,9 @@ def Di_induction_on {P : D∞ → Prop} (g : D∞)
 
 theorem length_mul_eq_add_or_sub (u v : D∞) (huv : ℓ u ≤ ℓ v) :
     ℓ (u * v) = ℓ u + ℓ v ∨ ℓ (u * v) = ℓ v - ℓ u := by
-  cases u with
-  | r u =>
-    cases v with
-    | r v =>
-      simp only [r_mul_r, length_r] at *
-      omega
-    | sr v =>
-      simp only [r_mul_sr, length_r, length_sr] at *
-      split_ifs at * <;> omega
-  | sr u =>
-    cases v with
-    | r v =>
-      simp only [sr_mul_r, length_r, length_sr] at *
-      split_ifs at * <;> omega
-    | sr v =>
-      simp only [sr_mul_sr, length_r, length_sr] at *
-      split_ifs at * <;> omega
+  cases u <;> cases v <;>
+    simp only [r_mul_r, r_mul_sr, sr_mul_r, sr_mul_sr, length_r, length_sr] at huv ⊢ <;>
+    (try split_ifs at huv ⊢) <;> omega
 
 structure Degree where
   a : ℕ
@@ -111,7 +95,7 @@ instance : AddCommMonoid Degree where
     ext; all_goals
       simp only [succ_mul]; rfl
 
---度数的偏序关系
+-- Partial order on degrees
 instance : PartialOrder Degree where
   le d1 d2 := d1.a ≤ d2.a ∧ d1.b ≤ d2.b
   le_refl d := ⟨le_refl _, le_refl _⟩
@@ -122,7 +106,7 @@ instance : PartialOrder Degree where
     exact ⟨Nat.le_antisymm h12.1 h21.1, Nat.le_antisymm h12.2 h21.2⟩
 
 @[simp]
-lemma Degreele_le_def (d1 d2 : Degree) : d1 ≤ d2 ↔ d1.a ≤ d2.a ∧ d1.b ≤ d2.b := by rfl
+lemma Degreele_le_def (d1 d2 : Degree) : d1 ≤ d2 ↔ d1.a ≤ d2.a ∧ d1.b ≤ d2.b := Iff.rfl
 
 def getDegree : D∞ → Degree
   | .r i =>
@@ -135,13 +119,26 @@ def getDegree : D∞ → Degree
     else
       ⟨k.natAbs + 1, k.natAbs⟩
 
+private lemma getDegree_sr_eq (k : ZMod 0) : -- (extracted by Fuse golfer)
+    getDegree (sr k) = ⟨((k.cast : ℤ) - 1).natAbs, (k.cast : ℤ).natAbs⟩ := by
+  dsimp [getDegree]
+  split_ifs with h h'
+  · if h0 : k = 0 then
+      simp [h0]
+    else
+      simp [h']
+  · congr
+    have hk_ne : (k.cast : ℤ) ≠ 0 := fun hk0 => h' (by exact_mod_cast hk0)
+    omega
+  · congr
+    omega
+
 @[simp]
-lemma getDegree_one : getDegree (1 : D∞) = ⟨0, 0⟩ := by
-      rfl
+lemma getDegree_one : getDegree (1 : D∞) = ⟨0, 0⟩ := rfl
 
 def Root.toDegree (α : Root) : Degree :=⟨α.a, α.b⟩
 
--- def顶点 (Vertices)。在 D∞ 的情况下，顶点是群元素
+-- Vertices. In the case of D∞, vertices are group elements
 abbrev Vertex := D∞
 
 lemma getDegree_alternating_0_even (k : ℕ) :
@@ -171,32 +168,18 @@ lemma getDegree_alternating_0_odd (k : ℕ) :
   rw [cs.prod_alternatingWord_eq_mul_pow 0 1 (2 * k + 1)]
   simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s1', s1, ← s0', s0, sr_mul_sr, sub_zero,
     r_pow, one_mul, sr_mul_r]
-  have h_div : (2 * k + 1) / 2 = k := by omega
-  rw [h_div]
-  have h1 : 0 ≤ 1 + (k : ℤ) := by linarith
-  have h2 : 0 ≠  1 + (k : ℤ) := by norm_cast; linarith
-  have h_abs : Int.natAbs (1 + (k : ℤ)) = k + 1 := by omega
-  have h2z : (1 + (k : ZMod 0) ≠ 0) := by
-    intro hz
-    have hc := congrArg (fun z : ZMod 0 => (z.cast : ℤ)) hz
-    simp at hc
-    exact h2 hc.symm
-  simp [getDegree, ge_iff_le, h1, h2z, h_abs]
+  rw [show (2 * k + 1) / 2 = k from by omega, getDegree_sr_eq]
+  simp only [zmod0_cast_add_int, zmod0_cast_one_int, zmod0_cast_natCast_int, Degree.mk.injEq]
+  omega
 
 lemma getDegree_alternating_1_odd (k : ℕ) :
     getDegree (cs.wordProd (alternatingWord 1 0 (2 * k + 1))) = ⟨k+1, k⟩ := by
   rw [cs.prod_alternatingWord_eq_mul_pow 1 0 (2 * k + 1)]
   simp only [not_even_bit1, ↓reduceIte, Fin.isValue, ← s0', s0, ← s1', s1, sr_mul_sr, zero_sub,
     r_pow, neg_mul, one_mul, sr_mul_r, zero_add]
-  have h_div : (2 * k + 1) / 2 = k := by omega
-  rw [h_div]
-  cases k with
-  | zero =>
-      simp [getDegree]
-  | succ k =>
-      have h_if : ¬ (k : ℤ) ≤ -1 := by omega
-      have h_abs : Int.natAbs (-1 + -(k : ℤ)) = k + 1 := by omega
-      simp [getDegree, ge_iff_le, h_if, h_abs]
+  rw [show (2 * k + 1) / 2 = k from by omega, getDegree_sr_eq]
+  simp only [zmod0_cast_neg_int, zmod0_cast_natCast_int, Degree.mk.injEq]
+  omega
 
 
 def s_α (α : Root) : D∞ :=
@@ -223,7 +206,7 @@ theorem length_root_reflection (α : Root) :
   <;>
   simp [length_eq, alternating_reducedWord]
 
---顶点 u 和 v 之间存在边，且度为 α。
+-- Notation φ for the degree map getDegree
 notation "φ" => getDegree
 
 lemma φ_s_alpha_eq (α : Root) : φ (s_α α) = α.toDegree := by
@@ -250,25 +233,10 @@ lemma getDegree_r_neg_natCast (a : ℕ) : φ (r (-(a : ℤ))) = ⟨a, a⟩ := by
   ext <;> simp [getDegree_r]
 
 lemma getDegree_sr (k : ZMod 0) :
-    φ (sr k) = ⟨((k.cast : ℤ) - 1).natAbs, (k.cast : ℤ).natAbs⟩ := by
-  dsimp [getDegree]
-  split_ifs with h h'
-  · if h0 : k = 0 then
-      simp [h0]
-    else
-      simp [h']
-  · congr
-    have hk : 1 ≤ (k.cast : ℤ) := by
-      have hk_ne : (k.cast : ℤ) ≠ 0 := by
-        intro hk0
-        apply h'
-        exact_mod_cast hk0
-      omega
-    omega
-  · congr
-    omega
+    φ (sr k) = ⟨((k.cast : ℤ) - 1).natAbs, (k.cast : ℤ).natAbs⟩ :=
+  getDegree_sr_eq k
 
--- lemma：度数加法奇偶性
+-- Parity of degree addition
 lemma degree_add_parity (g h : D∞) :
     ∃ (r s : ℕ), (φ g).a + (φ h).a = (φ (g * h)).a + 2 * r
                ∧ (φ g).b + (φ h).b = (φ (g * h)).b + 2 * s := by
@@ -276,43 +244,25 @@ lemma degree_add_parity (g h : D∞) :
   | r y =>
     cases h with
     | r x =>
-      have h_add : (((y + x).cast : ℤ) = (y.cast : ℤ) + (x.cast : ℤ)) := by
-        rw [zmod0_cast_add_int]
       rcases natAbs_add_eq_natAbs_add_two_mul (y.cast : ℤ) (x.cast : ℤ) with ⟨r, hr⟩
-      use r, r
-      simp only [getDegree_r, r_mul_r]
-      constructor <;> simpa [h_add, add_comm, add_left_comm, add_assoc] using hr
+      simp only [getDegree_r, r_mul_r, zmod0_cast_add_int]
+      exact ⟨r, r, by omega, by omega⟩
     | sr x =>
-      have h_sub : (((x - y).cast : ℤ) = (x.cast : ℤ) - (y.cast : ℤ)) := by
-        rw [zmod0_cast_sub_int]
       rcases natAbs_sub_eq_natAbs_add_two_mul ((x.cast : ℤ) - 1) (y.cast : ℤ) with ⟨r, hr⟩
       rcases natAbs_sub_eq_natAbs_add_two_mul (x.cast : ℤ) (y.cast : ℤ) with ⟨s, hs⟩
-      use r, s
-      simp only [getDegree_r, getDegree_sr, r_mul_sr]
-      constructor
-      · simpa [h_sub, add_comm, add_left_comm, add_assoc, sub_eq_add_neg] using hr
-      · simpa [h_sub, add_comm, add_left_comm, add_assoc, sub_eq_add_neg] using hs
+      simp only [getDegree_r, getDegree_sr, r_mul_sr, zmod0_cast_sub_int]
+      exact ⟨r, s, by omega, by omega⟩
   | sr y =>
     cases h with
     | r x =>
-      have h_add : (((y + x).cast : ℤ) = (y.cast : ℤ) + (x.cast : ℤ)) := by
-        rw [zmod0_cast_add_int]
       rcases natAbs_add_eq_natAbs_add_two_mul ((y.cast : ℤ) - 1) (x.cast : ℤ) with ⟨r, hr⟩
       rcases natAbs_add_eq_natAbs_add_two_mul (y.cast : ℤ) (x.cast : ℤ) with ⟨s, hs⟩
-      use r, s
-      simp only [getDegree_sr, getDegree_r, sr_mul_r]
-      constructor
-      · simpa [h_add, add_comm, add_left_comm, add_assoc, sub_eq_add_neg] using hr
-      · simpa [h_add, add_comm, add_left_comm, add_assoc] using hs
+      simp only [getDegree_sr, getDegree_r, sr_mul_r, zmod0_cast_add_int]
+      exact ⟨r, s, by omega, by omega⟩
     | sr x =>
-      have h_sub : (((x - y).cast : ℤ) = (x.cast : ℤ) - (y.cast : ℤ)) := by
-        rw [zmod0_cast_sub_int]
       rcases natAbs_sub_eq_natAbs_add_two_mul ((x.cast : ℤ) - 1) ((y.cast : ℤ) - 1) with ⟨r, hr⟩
       rcases natAbs_sub_eq_natAbs_add_two_mul (x.cast : ℤ) (y.cast : ℤ) with ⟨s, hs⟩
-      use r, s
-      simp only [getDegree_sr, sr_mul_sr, getDegree_r]
-      constructor
-      · simpa [h_sub, add_comm, add_left_comm, add_assoc, sub_eq_add_neg] using hr
-      · simpa [h_sub, add_comm, add_left_comm, add_assoc, sub_eq_add_neg] using hs
+      simp only [getDegree_sr, sr_mul_sr, getDegree_r, zmod0_cast_sub_int]
+      exact ⟨r, s, by omega, by omega⟩
 
 

@@ -48,7 +48,7 @@ def reducedWord (g : D∞) : List (Fin 2) :=
         CoxeterSystem.alternatingWord 0 1 (2 * k_int.natAbs - 1)
       else
         CoxeterSystem.alternatingWord 1 0 (2 * k_int.natAbs + 1)
--- 辅助函数：定义 D∞ 中元素的预期长度
+-- Helper function: the expected length of an element of D∞
 def explicit_length : D∞ → ℕ
 | r k => 2 * (k.cast : ℤ).natAbs
 | sr k =>
@@ -79,7 +79,7 @@ lemma explicit_length_mul_le (i : Fin 2) (g : D∞) :
         have hk : 1 ≤ Int.natAbs (k.cast : ℤ) := by
           have : Int.natAbs (k.cast : ℤ) > 0 := Int.natAbs_pos.mpr (ne_of_gt h)
           omega
-        nlinarith
+        omega
       · apply Nat.le_succ_of_le
         apply Nat.le_succ
   · simp only [f, s1]
@@ -90,58 +90,33 @@ lemma explicit_length_mul_le (i : Fin 2) (g : D∞) :
       dsimp [explicit_length]
       let k_int : ℤ := k.cast
       by_cases hk : k_int ≥ 0
-      · have h_pos : 1 + k_int > 0 := by linarith
+      · have h_pos : 1 + k_int > 0 := by omega
         rw [if_pos (by simpa [k_int] using h_pos)]
         have : ((1 + k).cast : ℤ).natAbs = 1 + (k.cast : ℤ).natAbs := by
-          rw [zmod0_cast_add_int, zmod0_cast_one_int]
-          have h₁ : (((1 : ℤ) + k.cast).natAbs : ℤ) = 1 + k.cast :=
-            Int.ofNat_natAbs_of_nonneg (by omega)
-          have h₂ : ((k.cast : ℤ).natAbs : ℤ) = k.cast :=
-            Int.ofNat_natAbs_of_nonneg hk
-          omega
-        rw [this, Nat.mul_add, mul_one]
-        omega
+          rw [zmod0_cast_add_int, zmod0_cast_one_int]; omega
+        rw [this]; omega
       · push Not at hk
         by_cases hk1 : k = -1
         · subst hk1; simp
-        · have h_nonpos : 1 + k_int ≤ 0 := by linarith
+        · have h_nonpos : 1 + k_int ≤ 0 := by omega
           rw [if_neg (by simpa [k_int] using not_lt.mpr h_nonpos)]
           have : ((1 + k).cast : ℤ).natAbs = (k.cast : ℤ).natAbs - 1 := by
-            rw [zmod0_cast_add_int, zmod0_cast_one_int]
-            have h₁ : (((1 : ℤ) + k.cast).natAbs : ℤ) = -(1 + k.cast) :=
-              Int.ofNat_natAbs_of_nonpos h_nonpos
-            have h₂ : ((k.cast : ℤ).natAbs : ℤ) = -k.cast :=
-              Int.ofNat_natAbs_of_nonpos (le_of_lt hk)
-            omega
-          rw [this, Nat.mul_sub, mul_one]
-          apply Nat.le_trans (m := 2 * (k.cast : ℤ).natAbs - 1)
-          · omega
-          · apply Nat.le_succ_of_le; apply Nat.sub_le
+            rw [zmod0_cast_add_int, zmod0_cast_one_int]; omega
+          rw [this]; omega
     | sr k =>
       dsimp [explicit_length]
       split_ifs with h
       · let k_int : ℤ := k.cast
         have : ((k - 1).cast : ℤ).natAbs = (k.cast : ℤ).natAbs - 1 := by
           have h1 : 1 ≤ k_int := Int.add_one_le_iff.mpr h
-          rw [zmod0_cast_sub_int, zmod0_cast_one_int]
-          have h₁ : (((k.cast : ℤ) - 1).natAbs : ℤ) = k.cast - 1 :=
-            Int.ofNat_natAbs_of_nonneg (by omega)
-          have h₂ : ((k.cast : ℤ).natAbs : ℤ) = k.cast :=
-            Int.ofNat_natAbs_of_nonneg (by omega)
-          omega
-        rw [this, Nat.mul_sub, mul_one]
-        omega
+          rw [zmod0_cast_sub_int, zmod0_cast_one_int]; omega
+        rw [this]; omega
       · let k_int : ℤ := k.cast
         have h_le : k_int ≤ 0 := Int.not_lt.mp h
         have h_abs : ((k - 1).cast : ℤ).natAbs = (k.cast : ℤ).natAbs + 1 := by
-          rw [zmod0_cast_sub_int, zmod0_cast_one_int]
-          have h₁ : (((k.cast : ℤ) - 1).natAbs : ℤ) = -(k.cast - 1) :=
-            Int.ofNat_natAbs_of_nonpos (by omega)
-          have h₂ : ((k.cast : ℤ).natAbs : ℤ) = -k.cast :=
-            Int.ofNat_natAbs_of_nonpos h_le
-          omega
+          rw [zmod0_cast_sub_int, zmod0_cast_one_int]; omega
         rw [h_abs]
-        linarith
+        omega
 
 lemma cs_length_ge_explicit (g : D∞) : explicit_length g ≤ ℓ g := by
   have h_bound (L : List (Fin 2)) : explicit_length (cs.wordProd L) ≤ L.length := by
@@ -157,7 +132,7 @@ lemma cs_length_ge_explicit (g : D∞) : explicit_length g ≤ ℓ g := by
   rw [hL_prod, hL_red.eq]
   exact h_bound L
 
--- 证明 reducedWord生成群元素
+-- reducedWord reconstructs the group element
 lemma reducedWord_correct (g : D∞) : cs.wordProd (reducedWord g) = g := by
   cases g with
   | r k =>
@@ -176,9 +151,7 @@ lemma reducedWord_correct (g : D∞) : cs.wordProd (reducedWord g) = g := by
         not_false_eq_true, mul_div_cancel_left₀, one_mul]
       change (s1 * s0) ^ Int.natAbs (k.cast : ℤ) = r k
       simp only [s1, s0, sr_mul_sr, zero_sub, r_pow, neg_mul, one_mul, r.injEq]
-      have : -(((k.cast : ℤ).natAbs) : ℤ) = k.cast := by
-        have := Int.ofNat_natAbs_of_nonpos (le_of_not_ge h)
-        linarith
+      have : -(((k.cast : ℤ).natAbs) : ℤ) = k.cast := by omega
       change ((-(((k.cast : ℤ).natAbs) : ℤ) : ZMod 0) = k)
       rw [this]
       simp
@@ -194,11 +167,7 @@ lemma reducedWord_correct (g : D∞) : cs.wordProd (reducedWord g) = g := by
       rw [h_div, ← s0', ← s1']
       simp only [s1, s0, sr_mul_sr, sub_zero, r_pow, one_mul, sr_mul_r, sr.injEq]
       have h_int :
-          (1 : ℤ) + ↑(Int.natAbs (k.cast : ℤ) - 1) = k.cast := by
-        calc
-          (1 : ℤ) + ↑(Int.natAbs (k.cast : ℤ) - 1)
-              = ↑(Int.natAbs (k.cast : ℤ)) := by norm_cast; omega
-          _   = k.cast := Int.ofNat_natAbs_of_nonneg (le_of_lt h)
+          (1 : ℤ) + ↑(Int.natAbs (k.cast : ℤ) - 1) = k.cast := by omega
       change (((1 : ℤ) + ↑(Int.natAbs (k.cast : ℤ) - 1) : ℤ) : ZMod 0) = k
       rw [h_int]
       simp
@@ -216,10 +185,11 @@ lemma reducedWord_correct (g : D∞) : cs.wordProd (reducedWord g) = g := by
       rw [h_int, neg_neg]
       simp
 
--- explicit_length 与 alternatingWord 长度一致，注意alternatingWord定义中没有交替条件
+-- explicit_length agrees with the length of alternatingWord; note that the
+-- definition of alternatingWord imposes no alternation condition
 lemma explicit_length_alternatingWord (i j : Fin 2) (n : ℕ) (h_ne : i ≠ j) :
     explicit_length (cs.wordProd (CoxeterSystem.alternatingWord i j n)) = n := by
-  -- 利用 wordProd (reducedWord g) = g 的逆向思维
+  -- Using the identity wordProd (reducedWord g) = g in reverse
   rw [cs.prod_alternatingWord_eq_mul_pow]
   split_ifs with h_even
   · -- Even n
@@ -228,7 +198,8 @@ lemma explicit_length_alternatingWord (i j : Fin 2) (n : ℕ) (h_ne : i ≠ j) :
     · -- i=0, j=0
       contradiction
     · -- i=0, j=1
-      simp [s0, s1, sr_mul_sr, ← s0', ← s1']
+      simp only [Fin.zero_eta, Fin.mk_one, Fin.isValue, ← s0', ← s1', s0, s1, sr_mul_sr,
+        sub_zero, r_pow, one_mul]
       dsimp [explicit_length]
       have hdiv : 2 * (n / 2) = n := by
         simpa [Nat.mul_comm] using (Nat.div_mul_cancel (h_even.two_dvd))
@@ -239,7 +210,7 @@ lemma explicit_length_alternatingWord (i j : Fin 2) (n : ℕ) (h_ne : i ≠ j) :
     · -- i=1, j=0.
       simp only [explicit_length, Fin.mk_one, Fin.isValue, ← s1', s1, Fin.zero_eta, ← s0', s0,
         sr_mul_sr, zero_sub, r_pow, neg_mul, one_mul]
-      simp
+      simp only [zmod0_cast_neg_int, zmod0_cast_natCast_int]
       have hdiv : 2 * (n / 2) = n := by
         simpa [Nat.mul_comm] using (Nat.div_mul_cancel (h_even.two_dvd))
       omega
@@ -259,11 +230,7 @@ lemma explicit_length_alternatingWord (i j : Fin 2) (n : ℕ) (h_ne : i ≠ j) :
         ↓reduceIte]
       have h : 2 * (n / 2) + 1 = n :=
         Nat.two_mul_div_two_add_one_of_odd h_even
-      calc
-        2 * Int.natAbs (1 + ↑(n / 2)) - 1
-            = 2 * (1 + n / 2) - 1 := by simp;congr
-        _   = 2 * (n / 2) + 1 := by omega
-        _   = n := h
+      omega
     · -- i=1, j=0.
       simp only [explicit_length, Fin.zero_eta, Fin.isValue, ← s0', s0, Fin.mk_one, ← s1', s1,
         sr_mul_sr, zero_sub, r_pow, neg_mul, one_mul, sr_mul_r, zero_add, gt_iff_lt,
@@ -271,7 +238,7 @@ lemma explicit_length_alternatingWord (i j : Fin 2) (n : ℕ) (h_ne : i ≠ j) :
       split_ifs with h_pos
       · simp at h_pos
         omega
-      · simp
+      · simp only [zmod0_cast_neg_int, zmod0_cast_natCast_int]
         have hodd : 2 * (n / 2) + 1 = n :=
           Nat.two_mul_div_two_add_one_of_odd h_even
         omega
@@ -286,15 +253,15 @@ lemma alternating_reducedWord (i i' : Fin 2) (n : ℕ) (h_ne : i ≠ i') :
     · contradiction
     · -- i=0, i'=1. g = (s0 s1)^k = r k.
       simp only [Fin.zero_eta, Fin.isValue, Fin.mk_one, cs.prod_alternatingWord_eq_mul_pow,
-        Even.add_self, ↓reduceIte, one_mul]
-      simp [s0, s1, sr_mul_sr,←  s0', ← s1', reducedWord]
+        Even.add_self, ↓reduceIte, one_mul, ← s0', ← s1', s0, s1, sr_mul_sr, sub_zero, r_pow,
+        reducedWord, ge_iff_le, zmod0_cast_natCast_int]
       rw [if_pos (by omega)]
       congr
       omega
     · -- i=1, i'=0. g = (s1 s0)^k = r (-k).
       simp only [Fin.zero_eta, Fin.isValue, Fin.mk_one, cs.prod_alternatingWord_eq_mul_pow,
-        Even.add_self, ↓reduceIte, one_mul]
-      simp [s0, s1, sr_mul_sr,←  s0', ← s1', reducedWord]
+        Even.add_self, ↓reduceIte, one_mul, ← s0', ← s1', s0, s1, sr_mul_sr, zero_sub, r_pow,
+        neg_mul, reducedWord, ge_iff_le, zmod0_cast_neg_int, zmod0_cast_natCast_int]
       by_cases hk : k = 0
       · subst hk
         simp [alternatingWord]
@@ -315,8 +282,8 @@ lemma alternating_reducedWord (i i' : Fin 2) (n : ℕ) (h_ne : i ≠ i') :
         one_mul, sr_mul_r, gt_iff_lt]
       have : (1 + k_int) > 0 := by norm_cast; omega
       rw [if_pos (by simpa [k_int] using this)]
-      congr
-      simp
+      congr 1
+      simp only [zmod0_cast_add_int, zmod0_cast_one_int, zmod0_cast_natCast_int]
       omega
     · -- i=1, i'=0.
       simp only [Fin.mk_one, Fin.isValue, Fin.zero_eta, cs.prod_alternatingWord_eq_mul_pow,
@@ -328,8 +295,9 @@ lemma alternating_reducedWord (i i' : Fin 2) (n : ℕ) (h_ne : i ≠ i') :
       let k_int : ℤ := k
       have : ((k) : ℤ) ≥ 0 := by norm_cast; omega
       rw [if_neg (by simp)]
-      congr
-      simp
+      congr 1
+      simp only [zmod0_cast_neg_int, zmod0_cast_natCast_int]
+      omega
     · contradiction
 
 theorem length_eq (g : D∞) : ℓ g = (reducedWord g).length := by
@@ -355,7 +323,7 @@ theorem length_eq (g : D∞) : ℓ g = (reducedWord g).length := by
         dsimp [explicit_length]
         rw [if_neg h]
   rw [h_len_eq] at h_le
-  exact le_antisymm h_le (cs_length_ge_explicit g) ▸ h_len_eq.symm
+  exact (le_antisymm h_le (cs_length_ge_explicit g)).trans h_len_eq.symm
 
 lemma alternating_length (h : i ≠ j) :
     (reducedWord (cs.wordProd (alternatingWord i j n))).length = n := by
@@ -369,13 +337,7 @@ lemma length_eq' (h : i ≠ j) : cs.length (cs.wordProd (alternatingWord i j n))
 theorem length_sr_abs (k : ZMod 0) : ℓ (sr k) = (2 * (k.cast : ℤ) - 1).natAbs := by
   rw [length_eq]
   dsimp [reducedWord]
-  split_ifs with hk
-  · rw [length_alternatingWord]
-    have habs : (2 * (k.cast : ℤ) - 1).natAbs = 2 * (k.cast : ℤ).natAbs - 1 := by omega
-    omega
-  · rw [length_alternatingWord]
-    have habs : (2 * (k.cast : ℤ) - 1).natAbs = 2 * (k.cast : ℤ).natAbs + 1 := by omega
-    omega
+  split_ifs with hk <;> rw [length_alternatingWord] <;> omega
 
 lemma alternatingWord_head_odd (i j : Fin 2) (k : ℕ) :
     (alternatingWord i j (2 * k + 1)).head? = some j := by
@@ -415,7 +377,7 @@ theorem dihedral_induction {P : D∞ → Prop}
     simp only [cs.wordProd_nil]
     exact h1
   | append_singleton xs i ih =>
-    -- 归纳步：cs.wordProd (xs ++ [i]) = cs.wordProd xs * s i
+    -- Inductive step: cs.wordProd (xs ++ [i]) = cs.wordProd xs * s i
     simp only [cs.wordProd_append, cs.wordProd_singleton]
     fin_cases i
     · -- i = 0
@@ -435,7 +397,7 @@ theorem induction_on_alternating {P : D∞ → Prop}
   · intro g hg; exact h_step g 0 hg
   · intro g hg; exact h_step g 1 hg
 
--- D∞ 的 Alternating cases
+-- Alternating cases for D∞
 theorem alternating_cases {P : D∞ → Prop}
     (h : ∀ (i j : Fin 2) (n : ℕ), i ≠ j → P (cs.wordProd (alternatingWord i j n))) :
     ∀ g, P g := by

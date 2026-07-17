@@ -65,6 +65,20 @@ jobs:
             echo "HOME_PAGE_EXISTS=false" >> $GITHUB_ENV
           fi
 
+      - name: Free disk space for TeX Live
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          docker system prune --all --force
+          sudo apt-get clean
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Build blueprint and copy to `home_page/blueprint`
         uses: xu-cheng/texlive-action@v2
         with:
@@ -113,11 +127,13 @@ jobs:
         run: JEKYLL_ENV=production bundle exec jekyll build  # Note this will also copy the blueprint and API doc into home_page/_site
 
       - name: "Upload website (API documentation, blueprint and any home page)"
+        if: github.event.repository.has_pages == true
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ env.HOME_PAGE_EXISTS == 'true' && 'home_page/_site' || 'home_page/' }}
 
       - name: Deploy to GitHub Pages
+        if: github.event.repository.has_pages == true
         id: deployment
         uses: actions/deploy-pages@v4
 
